@@ -1,0 +1,52 @@
+Unicode,ARPABET,Kirshenbaum,IPA,LaTeXTipa
+U+0070,P,p,p,p
+U+006D,M,m,m,m
+U+0074,T,t,t,t
+U+0062,B,b,b,b
+U+0064,D,d,d,d
+U+006B,K,k,k,k
+U+006E,N,n,n,n
+U+0067,G,g,ɡ,g
+U+0066,F,f,f,f
+U+0076,V,v,v,v
+U+0283,SH,S,ʃ,S
+U+0073,S,s,s,s
+U+007A,Z,z,z,z
+U+0292,ZH,Z,ʒ,Z
+U+006A,Y,j,j,j
+U+0068,HH,h,h,h
+U+02A4,JH,dZ,dʒ,\textdyoghlig
+U+02A7,CH,tS,tʃ,\textteshlig
+U+00F0,DH,D,ð,D
+U+03B8,TH,T,θ,T
+U+006C,L,l,l,l
+U+029F,L,L,ʟ,\;L
+U+0294,Q,?,ʔ,\textglotstop
+U+014B,NG,N,ŋ,N
+U+0279,R,r,ɹ,\textturnr
+U+006F,O,o,o,o
+U+006F U+028A,OW,oU,oʊ,oU
+U+0254 U+026A,OY,OI,ɔɪ,OI
+U+0254,AO,O,ɔ,O
+U+0077,W,w,w,w
+U+028D,WH,w,ʍ,\textturnw
+U+0259,AX,@,ə,@
+U+0250,AH,a#,ɐ,5
+U+0069,IY,i,i,i 
+U+026A,IH,I,ɪ,I
+U+0065,E,e,e,e
+U+025B,EH,E,ɛ,E
+U+0065 U+026A,EY,eI,eɪ,eI
+U+00E6,AE,&,æ,\ae
+U+0061,AA,a,a,a
+U+0061 U+026A,AY,aI,aɪ,aI
+U+0061 U+028A,AW,aU,aʊ,aU
+U+0075,UW,u,u,u
+U+028A,UH,U,ʊ,U
+U+028C,AH,V,ʌ,2
+U+0251,AA,A,ɑ,A
+U+0252,A6,0,ɒ,6
+U+025D,ER,R,ɝ,\textrhookrevepsilon
+U+02DE,AXR,R,ɚ,\textrighthookschwa
+U+0268,IX,i",ɨ,\textbari
+U+0289,UX,u",ʉ,\textbaru
