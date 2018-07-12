@@ -397,7 +397,6 @@ def phoneDeleteDistance(s, df):
     else:
        raise TypeError("Argument must be a list of strings (or unicodes) of length 2.")
 
-
 def phoneInsertDistance(s, df):
     return phoneDeleteDistance(s, df)
 
@@ -405,9 +404,9 @@ def phoneReplaceDistance(s1, s2, df):
     if type(s1) is list and (type(s1[0]) is str or type(s1[0]) is unicode) and len(s1) == 2 and type(s2) is list and (type(s2[0]) is str or type(s2[0]) is unicode) and len(s2) == 2:
        if s1[1] == s2[1]:
           return 0
-       w = 1 # weigh
+       w = 0.5 # weigh
        if s1[0] == '':
-          w = 0.5 
+          w = 0.25 
        return phonedistance(s1[1], s2[1], df) + w * abs(phonedistance(s1[0], s1[1], df) - phonedistance(s2[0], s2[1], df))
     else:
         raise TypeError("Arguments must be a list of strings (or unicodes) of length 2 and the first element must be the same.")
@@ -428,10 +427,13 @@ def phone_damerau_levenshtein_distance(s1, s2, df, letters):
     d = {}
     lenstr1 = len(s1)
     lenstr2 = len(s2)
-    for i in xrange(-1,lenstr1+1):
-        d[(i,-1)] = i+1
-    for j in xrange(-1,lenstr2+1):
-        d[(-1,j)] = j+1
+    d[(-1,-1)] = 0
+    for i in xrange(0,lenstr1):
+        d[(i,-1)] = d[(i-1,-1)] + phoneInsertDistance(['',s1[i]], df)
+    for j in xrange(0,lenstr2):
+        d[(-1,j)] = d[(-1,j-1)] + phoneInsertDistance(['',s2[j]], df)
+    d[(lenstr1,-1)] = d[(lenstr1-1,-1)] + 1
+    d[(-1,lenstr2)] = d[(-1,lenstr2-1)] + 1
     for i in xrange(lenstr1):
         for j in xrange(lenstr2):
             if s1[i] == s2[j]:
@@ -511,14 +513,17 @@ def unit_tests():
     assert 0.07 < P('the') < 0.08
     return 'unit_tests pass'
 
-def spelltest(tests, verbose=False):
+def spelltest(tests, verbose=False, log=False):
     "Run correction(wrong) on all (right, wrong) pairs; report results."
     import time
+    if log:
+       import datetime
+       filename = 'phoneticspell_log_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+       f = open(filename,'w')
     start = time.clock()
     good, unknown = 0, 0
     n = len(tests)
     for right, wrong in tests:
-        print wrong
         w = phoneticCorrection(wrong)
         good += (w == right)
         if w != right:
@@ -526,6 +531,10 @@ def spelltest(tests, verbose=False):
             if verbose:
                 print('correction({}) => {} ({}); expected {} ({})'
                       .format(wrong, w, WORDS[w], right, WORDS[right]))
+            if log:
+                print >>f, 'correction({}) => {} ({}); expected {} ({})'.format(wrong, w, WORDS[w], right, WORDS[right])
+    if log:
+       f.close()
     dt = time.clock() - start
     print('{:.0%} of {} correct ({:.0%} unknown) at {:.0f} words per second '
           .format(float(good) / n, n, float(unknown) / n, float(n) / dt))
@@ -538,6 +547,6 @@ def Testset(lines):
 
 if __name__ == '__main__':
     print(unit_tests())
-    spelltest(Testset(open('spell-testset1.txt')))
-    spelltest(Testset(open('spell-testset2.txt')))
+    spelltest(Testset(open('spell-testset1.txt')), False, True)
+    spelltest(Testset(open('spell-testset2.txt')), False, True)
 
