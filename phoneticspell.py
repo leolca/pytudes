@@ -6,9 +6,6 @@ from collections import Counter
 import subprocess
 import pandas as pd
 import numpy as np
-# Python 2 handling SIGPIPE in a non-standard way 
-# fix Broken pipe
-# https://stackoverflow.com/questions/39397034/script-works-differently-when-ran-from-the-terminal-and-ran-from-python
 import signal
 signal.signal(signal.SIGPIPE,signal.SIG_DFL)
 import csv
@@ -55,7 +52,6 @@ def nlargest(d, n=None, thekey=None):
              sd = sorted(d, reverse=True)
           n = min(len(sd),n)
           return sd[:n]
-          #return [sd[i] for i in range(-n,0)[::-1]]
     else:
        return d
 
@@ -114,13 +110,11 @@ def loadwordpronounciationdict(filename, pron="ipa", N=None):
        for z in zdic:
            if z[0] not in mdict:
                mdict[z[0]] = z[1]
-       #mdict = dict(zip(dfpd.word, dfpd.ipa))
     elif pron == "kirshenbaum":
        zdic = zip(dfpd.word, dfpd.kirshenbaum)
        for z in zdic:
            if z[0] not in mdict:
                mdict[z[0]] = z[1]
-       #mdict = dict(zip(dfpd.word, dfpd.kirshenbaum))
     else:
        raise NameError('wrong pronouncing dictionary')
     return mdict
@@ -155,24 +149,6 @@ def getPhonesDataFrame(filename):
     df = pd.read_csv(filename, encoding = 'utf8')
     return df
 
-# remove syllable and long vowel mark 
-#def removeUndesirableSymbols(mdic, undesirable=["\xcb\x88", "\xcb\x90", "\xcb\x8c", "'", ","]):
-#    if type(mdic).__name__ == 'dict':
-#       for key, value in mdic.items():
-#           for c in undesirable:
-#               value = value.replace(c, "")
-#           mdic[key] = value
-#       return mdic    
-#    elif type(mdic).__name__ == 'str':
-#         for c in undesirable:
-#             mdic = mdic.replace(c, "")
-#         return mdic
-#    elif type(mdic).__name__ == 'unicode':
-#         undesirableu = [convert2unicode(s) for s in undesirable] 
-#         for c in undesirableu:
-#             mdic = mdic.replace(c, u"")
-#         return mdic
-
 def createSpellingDict(pdic, wDic=WORDS):
     sdic = {}
     for k, v in pdic.iteritems():
@@ -185,7 +161,6 @@ def createSpellingDict(pdic, wDic=WORDS):
 pronouncingDict = loadwordpronounciationdict('wordpronounciation.txt', 'kirshenbaum')
 pronouncingDict = parseUndesirableSymbols(pronouncingDict)
 removefromdict(removeList, pronouncingDict)
-#spellingDict = {v: k for k, v in pronouncingDict.iteritems()}
 spellingDict = createSpellingDict(pronouncingDict)
 df = getPhonesDataFrame('phones_eqvs_table.txt')
 
@@ -201,9 +176,6 @@ def findWordGivenPhonetic(phonetic, mdic):
         if v == phonetic:
            rl.append(k)
     return rl
-
-# arpabet kirshenbaum ipa mapping
-# cat arpabet2_kirshenbaum_ipa.dat | awk -F\# '$1!="" { print $1 ;} '
 
 def getWordPhoneticTranscription(word, alphabet=None, mdic=None):
     if mdic is not None and word in mdic:
@@ -243,33 +215,6 @@ def convertPhoneticWord2PhoneticSequence(word, letters=listOfPhones):
                 sequence.pop(x)
                 sl = [(i[0]-1, i[1]-1) for i in sl]
     return sequence
-
-
-#    if u'ʃ' in sequence or u'S' in sequence:
-#       idS = [i for i in range(len(sequence)) if sequence[i] == u'ʃ' or sequence[i] == u'S']
-#       if len(idS) > 0:
-#          for i in range(len(idS)):
-#              if idS[i] > 0 and sequence[idS[i]-1] == u't':
-#                 if alphabet is None or alphabet.lower() == 'kirshenbaum':
-#                    sequence[idS[i]-1] = u'tS'
-#                 else:
-#                    sequence[idS[i]-1] = u'tʃ'
-#                 sequence.pop(idS[i])
-#                 for j in range(i+1, len(idS)):
-#                     idS[j]-=1
-#    if u'ʒ' in sequence or u'Z' in sequence:
-#       idZ = [i for i in range(len(sequence)) if sequence[i] == u'ʒ' or sequence[i] == u'Z']
-#       if len(idZ) > 0:
-#          for i in range(len(idZ)):
-#              if idZ[i] > 0 and sequence[idZ[i]-1] == u'd':
-#                 if alphabet is None or alphabet.lower() == 'kirshenbaum':
-#                    sequence[idZ[i]-1] = u'dZ'
-#                 else:
-#                    sequence[idZ[i]-1] = u'dʒ'
-#                 sequence.pop(idZ[i])
-#                 for j in range(i+1, len(idZ)):
-#                     idZ[j]-=1
-#    return sequence
 
 def convertPhoneticSequence2PhoneticWord(sword):
     if type(sword[0]) is list:
@@ -323,7 +268,6 @@ def phoneedits1(word, letters=listOfPhones):
     "All edits that are one edit away from `word`."
     word = convert2unicode(word)
     word = convertPhoneticWord2PhoneticSequence(word, letters)
-    #letters    = [u'p', u't', u'k', u'b', u'd', u'g', u'tS', u'dZ', u'f', u'T', u's', u'S', u'h', u'v', u'D', u'z', u'Z', u'm', u'n', u'N', u'r', u'j', u'l', u'w', u'w', u'i', u'u', u'I', u'U', u'e', u'o', u'E', u'@', u'V"', u'V', u'O', u'&', u'A', u'A.', u'a', u'R']
     splits     = [(word[:i], word[i:])    for i in range(len(word) + 1)]
     deletes    = [L + R[1:]               for L, R in splits if R]
     deletes    = convertPhoneticSequence2PhoneticWord(deletes)
@@ -340,9 +284,6 @@ def phoneedits2(word):
     return (e2 for e1 in phoneedits1(word) for e2 in phoneedits1(e1))
 
 
-
-# https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance
-# https://www.guyrutenberg.com/2008/12/15/damerau-levenshtein-distance-in-python/
 """
 Compute the Damerau-Levenshtein distance between two given
 strings (s1 and s2)
@@ -481,14 +422,11 @@ def ObjectiveFunction(tword, oword, sdic, df, letters=listOfPhones, N=sum(WORDS.
 
 ################ Test Code 
 def unit_tests():
-    #assert phoneticCorrection('panks', pronouncingDict, spellingDict, distinctivefeatures, 'kirshenbaum', listOfPhones) == 'banks'             # replace
     assert phoneticCorrection('panks') == 'banks'             # replace
     assert phoneticCorrection('dat') == 'that'                # replace
     assert phoneticCorrection('speling') == 'spelling'        # insert
-    #assert phoneticCorrection('korrectud') == 'corrected'     # replace
     assert phoneticCorrection('bycycle') == 'bicycle'         # replace
     assert phoneticCorrection('inconvient') == 'inconvenient' # insert    
-    #assert phoneticCorrection('peotry') == 'poetry'          # transpose
     assert phoneticCorrection('arrainged') == 'arranged'      # delete
     assert phoneticCorrection('word') == 'word'               # known
     assert phoneticCorrection('quintessential') == 'quintessential' # unknown
