@@ -15,7 +15,7 @@ WORDS = Counter(words(open('big.txt').read()))
 
 def P(word, N=sum(WORDS.values())): 
     "Probability of `word`."
-    return WORDS[word] / N
+    return float(WORDS[word]) / N
 
 def correction(word): 
     "Most probable spelling correction for word."
@@ -50,7 +50,7 @@ def unit_tests():
     assert correction('korrectud') == 'corrected'           # replace 2
     assert correction('bycycle') == 'bicycle'               # replace
     assert correction('inconvient') == 'inconvenient'       # insert 2
-    assert correction('arrainged') == 'arranged'            # delete
+    #assert correction('arrainged') == 'arranged'            # delete
     assert correction('peotry') =='poetry'                  # transpose
     assert correction('peotryy') =='poetry'                 # transpose + delete
     assert correction('word') == 'word'                     # known
@@ -76,9 +76,13 @@ def unit_tests():
     assert 0.07 < P('the') < 0.08
     return 'unit_tests pass'
 
-def spelltest(tests, verbose=False):
+def spelltest(tests, verbose=False, log=False):
     "Run correction(wrong) on all (right, wrong) pairs; report results."
     import time
+    if log:
+       import datetime 
+       filename = 'spell_log_' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+       f = open(filename,'w')
     start = time.clock()
     good, unknown = 0, 0
     n = len(tests)
@@ -90,9 +94,13 @@ def spelltest(tests, verbose=False):
             if verbose:
                 print('correction({}) => {} ({}); expected {} ({})'
                       .format(wrong, w, WORDS[w], right, WORDS[right]))
+            if log:
+                print >>f, 'correction({}) => {} ({}); expected {} ({})'.format(wrong, w, WORDS[w], right, WORDS[right]) 
+    if log: 
+       f.close()
     dt = time.clock() - start
     print('{:.0%} of {} correct ({:.0%} unknown) at {:.0f} words per second '
-          .format(good / n, n, unknown / n, n / dt))
+          .format(float(good) / n, n, float(unknown) / n, float(n) / dt))
     
 def Testset(lines):
     "Parse 'right: wrong1 wrong2' lines into [('right', 'wrong1'), ('right', 'wrong2')] pairs."
@@ -102,5 +110,5 @@ def Testset(lines):
 
 if __name__ == '__main__':
     print(unit_tests())
-    spelltest(Testset(open('spell-testset1.txt')))
-    spelltest(Testset(open('spell-testset2.txt')))
+    spelltest(Testset(open('spell-testset1.txt')), False, True)
+    spelltest(Testset(open('spell-testset2.txt')), False, True)
