@@ -16,6 +16,10 @@ from math import log10
 import enchant
 #import pdb # debug
 
+
+# global weight to use in the spell correction (probability, phonetic distance)
+weightPdist = (0.5, 0.5)
+
 endic = enchant.Dict("en_US")
 
 def exists(path):
@@ -391,10 +395,10 @@ def phone_damerau_levenshtein_distance(s1, s2, df, letters):
     return d[lenstr1-1,lenstr2-1]
 
 
-def phoneticCorrection(word, mdic=pronouncingDict, sdic=spellingDict, df=distinctivefeatures, alphabet='kirshenbaum', letters=listOfPhones): 
+def phoneticCorrection(word, mdic=pronouncingDict, sdic=spellingDict, df=distinctivefeatures, alphabet='kirshenbaum', letters=listOfPhones, weight=(0.5, 0.5)): 
     "Most probable spelling correction for word."
     sword = getWordPhoneticTranscription(word, alphabet, mdic)
-    wmax = max([c for c in phoneticCandidates(sword, sdic)], key=lambda candidates: ObjectiveFunction(candidates, sword, sdic, df, letters))
+    wmax = max([c for c in phoneticCandidates(sword, sdic)], key=lambda candidates: ObjectiveFunction(candidates, sword, sdic, df, letters, weight))
     corr = ''.join(wmax)
     if corr in sdic:
        return sdic[corr]
@@ -402,34 +406,43 @@ def phoneticCorrection(word, mdic=pronouncingDict, sdic=spellingDict, df=distinc
        return word
 
 
-def ObjectiveFunction(tword, oword, sdic, df, letters=listOfPhones, N=sum(WORDS.values()), mm=WORDS[min(WORDS, key=WORDS.get)], MM=WORDS[max(WORDS, key=WORDS.get)]): 
+def ObjectiveFunction(tword, oword, sdic, df, letters=listOfPhones, weight=(0.5, 0.5), N=sum(WORDS.values()), mm=WORDS[min(WORDS, key=WORDS.get)], MM=WORDS[max(WORDS, key=WORDS.get)]): 
     """ 
     function to maximize: 
       maximize probability of the existing target word and minimize edit distance between target word and original `word`
       sdic is a spelling dictionary
       df is a distinctive feature matrix
     """
-    d = phone_damerau_levenshtein_distance(tword, oword, df, letters)
+    if sum(weight) != 1:
+       raise TypeError("Weights do not sum 1.")
+    numfeatures = df.shape[1]
+    d = 0
+    if weight[1] > 0:
+       d = phone_damerau_levenshtein_distance(tword, oword, df, letters)
     if type(tword) is list:
        tword = convertPhoneticSequence2PhoneticWord(tword)
     if tword in sdic:
        word = sdic[tword]
        if word in WORDS:
-          # there are 25 distinctive features ... then using weight 2x25 = 50 on probability
-          return ( log10(float(WORDS[word])/N) - log10(float(mm)/N) ) / (log10(float(MM)/N) - log10(float(mm)/N)) - float(d)/25
-    return -float(d)/25
+          # there are 25 (numfeatures) distinctive features ... then using weight 2x25 = 50 on probability
+          return weight[0]*( log10(float(WORDS[word])/N) - log10(float(mm)/N) ) / (log10(float(MM)/N) - log10(float(mm)/N)) - weight[1]*float(d)/numfeatures
+    elif weight[1] > 0:
+       return -float(d)/numfeatures
+    else:
+       return 0
 
 
 ################ Test Code 
 def unit_tests():
-    assert phoneticCorrection('panks') == 'banks'             # replace
-    assert phoneticCorrection('dat') == 'that'                # replace
-    assert phoneticCorrection('speling') == 'spelling'        # insert
-    assert phoneticCorrection('bycycle') == 'bicycle'         # replace
-    assert phoneticCorrection('inconvient') == 'inconvenient' # insert    
-    assert phoneticCorrection('arrainged') == 'arranged'      # delete
-    assert phoneticCorrection('word') == 'word'               # known
-    assert phoneticCorrection('quintessential') == 'quintessential' # unknown
+    w = weightPdist 
+    assert phoneticCorrection('panks', weight=w) in ['banks', 'ranks']   # replace
+    assert phoneticCorrection('dat', weight=w) in ['that', 'tat']        # replace
+    assert phoneticCorrection('speling', weight=w) == 'spelling'         # insert
+    assert phoneticCorrection('bycycle', weight=w) == 'bicycle'          # replace
+    assert phoneticCorrection('inconvient', weight=w) == 'inconvenient'  # insert    
+    assert phoneticCorrection('arrainged', weight=w) == 'arranged'       # delete
+    assert phoneticCorrection('word', weight=w) == 'word'                # known
+    assert phoneticCorrection('quintessential', weight=w) == 'quintessential' # unknown
     assert words('This is a TEST.') == ['this', 'is', 'a', 'test']
     assert Counter(words('This is a test. 123; A TEST this is.')) == (
            Counter({'this': 2, 'a': 2, 'is': 2, 'test': 2}))
@@ -451,7 +464,7 @@ def unit_tests():
     assert 0.07 < P('the') < 0.08
     return 'unit_tests pass'
 
-def spelltest(tests, verbose=False, log=False):
+def spelltest(tests, verbose=False, log=False, weight=(0.5, 0.5)):
     "Run correction(wrong) on all (right, wrong) pairs; report results."
     import time
     if log:
@@ -462,7 +475,7 @@ def spelltest(tests, verbose=False, log=False):
     good, unknown = 0, 0
     n = len(tests)
     for right, wrong in tests:
-        w = phoneticCorrection(wrong)
+        w = phoneticCorrection(wrong, weight=weight)
         good += (w == right)
         if w != right:
             unknown += (right not in WORDS)
@@ -485,6 +498,7 @@ def Testset(lines):
 
 if __name__ == '__main__':
     print(unit_tests())
-    spelltest(Testset(open('spell-testset1.txt')), False, True)
-    spelltest(Testset(open('spell-testset2.txt')), False, True)
+    w = weightPdist
+    spelltest(Testset(open('spell-testset1.txt')), False, True, weight=w)
+    spelltest(Testset(open('spell-testset2.txt')), False, True, weight=w)
 
