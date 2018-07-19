@@ -395,15 +395,24 @@ def phone_damerau_levenshtein_distance(s1, s2, df, letters):
     return d[lenstr1-1,lenstr2-1]
 
 
-def phoneticCorrection(word, mdic=pronouncingDict, sdic=spellingDict, df=distinctivefeatures, alphabet='kirshenbaum', letters=listOfPhones, weight=(0.5, 0.5)): 
+def phoneticCorrection(word, mdic=pronouncingDict, sdic=spellingDict, df=distinctivefeatures, alphabet='kirshenbaum', letters=listOfPhones, weight=(0.5, 0.5), numcandidates=1): 
     "Most probable spelling correction for word."
     sword = getWordPhoneticTranscription(word, alphabet, mdic)
-    wmax = max([c for c in phoneticCandidates(sword, sdic)], key=lambda candidates: ObjectiveFunction(candidates, sword, sdic, df, letters, weight))
-    corr = ''.join(wmax)
-    if corr in sdic:
-       return sdic[corr]
+    if numcandidates > 1:
+       wmax = nlargest([c for c in phoneticCandidates(sword, sdic)], n=numcandidates, thekey=lambda candidates: ObjectiveFunction(candidates, sword, sdic, df, letters, weight))
+       corr = [''.join(w) for w in wmax]
+       r = [sdic[c] for c in corr if c in sdic]
+       if len(r) > 0:
+          return r
+       else:
+          return word
     else:
-       return word
+       wmax = max([c for c in phoneticCandidates(sword, sdic)], key=lambda candidates: ObjectiveFunction(candidates, sword, sdic, df, letters, weight))
+       corr = ''.join(wmax)
+       if corr in sdic:
+          return sdic[corr]
+       else:
+          return word
 
 
 def ObjectiveFunction(tword, oword, sdic, df, letters=listOfPhones, weight=(0.5, 0.5), N=sum(WORDS.values()), mm=WORDS[min(WORDS, key=WORDS.get)], MM=WORDS[max(WORDS, key=WORDS.get)]): 
