@@ -112,3 +112,9 @@ if __name__ == '__main__':
     print(unit_tests())
     spelltest(Testset(open('spell-testset1.txt')), False, True)
     spelltest(Testset(open('spell-testset2.txt')), False, True)
+    spelltest(Testset(open('spell-testset-complete.txt')), False, True)
+
+
+####
+#### $ cat missp.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$2=":"OFS$2}1' | sed 's/ : /: /g' > spell-testset-complete.txt
+####
