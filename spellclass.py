@@ -45,14 +45,17 @@ def nlargest(d, n=None, thekey=None):
 
 class Spell:
     """Base spellchecker class"""
-    def __init__(self, spelldic=None):
+    def __init__(self, spelldic=None, corpus=None):
         """Initialize the spellchecker from as an empty Counter or load data from an existing Counter or from file, using load_WORDS method."""
         if type( spelldic ) is Counter:
            self.WORDS = spelldic
         elif type(spelldic) is str and exists(spelldic):
-              self.WORDS = self.load_WORDS(spelldic)
+             self.WORDS = self.load_WORDS(spelldic)
         else:
-           self.WORDS = Counter()
+           if corpus is not None:
+              self.WORDS = self.load_WORDS_from_corpus(corpus)
+           else:
+              self.WORDS = Counter()
         self.N = self.get_corpus_length()
         self.M = self.get_max_frequency()
         self.m = self.get_min_frequency()
@@ -62,10 +65,19 @@ class Spell:
         return cls(filename)
 
     @classmethod
+    def load_WORDS_from_corpus(cls, corpusfile):
+        if exists(corpusfile):
+            with open(corpusfile) as f:
+                return Counter(words(f.read()))
+
+    @classmethod
     def from_text_corpus(cls, textfile):
-        wcounter = Counter(words(open(textfile).read()))
+        """Create a Spell object from a text corpus."""
+        wcounter = cls.load_WORDS_from_corpus(textfile)
         mySpell = cls(wcounter)
         mySpell.N = mySpell.get_corpus_length()
+        mySpell.M = mySpell.get_max_frequency()
+        mySpell.m = mySpell.get_min_frequency()
         return mySpell
 
     def WORDS_len(self):
@@ -76,8 +88,7 @@ class Spell:
         if exists(filename):
            try:
               with open(filename) as f:
-                 WORDS = Counter(json.load(f)) 
-                 return WORDS
+                 return Counter(json.load(f)) 
            except ValueError:
               WORDS = Counter()
               with open(filename) as f:
@@ -95,7 +106,7 @@ class Spell:
               return None 
         else:
            return None
-    
+   
     def get_corpus_length(self):
         if self.WORDS is not None:
            return sum(self.WORDS.values())
@@ -274,38 +285,28 @@ class KeyboardSpell(Spell):
 
 ########################################################################################################
 
+class PhoneticSpell(Spell):
+    def __init__(self, spelldic=None, distinctivefeaturesfile=None, weightObjFun=None):
+        # call the parent constructor
+        Spell.__init__(self, spelldic)
+        self.dfeatures = self.load_distinctivefeatures(distinctivefeaturesfile)
+        self.listOfPhones = list(self.dfeatures.phon)
+        if weightObjFun is None:
+           self.weightObjFun = (0.5, 0.5)
+        else:
+           if sum(weightObjFun) != 1:
+              raise TypeError("Weights do not sum 1.")
+           self.weightObjFun = weightObjFun
 
+    def load_distinctivefeatures(self, dfile):
+        import pandas as pd
+        return pd.read_csv(dfile, encoding = 'utf8')
+ 
+#    @classmethod 
+#    def create_complete_dictionart_from_corpus(corpusfile):
+#        $ cat big.txt | tr 'A-Z' 'a-z' | tr -sc 'A-Za-z' '\n' | sort | uniq -c | sort -n -r | head | awk '{print "echo "$1" "$2" $(echo "$2" | ./geteSpeakWordlist.sh -k -p)" }' | sh | column -t
+ 
 
-
+########################################################################################################
 # @property
 # @blabla.setter
-
-#myspell = Spell.from_file('/usr/share/dict/american-english')
-
-#myspell = Spell.from_file('englishdict.json')
-
-#myspell = Spell()
-#myspell.load_WORDS_from_text_corpus('big.txt')
-
-myspell = Spell.from_text_corpus('big.txt')
-
-print myspell.WORDS_len()
-print myspell.get_corpus_length() 
-
-print 'the probability of the word "the" in the corpus is {}'.format(myspell.P('the'))
-teststr = 'speling'
-print 'the spell correction: {} > {}'.format(teststr, myspell.correction(teststr))
-
-
-
-# spell checker using keyboard distance
-mykbspell = KeyboardSpell('englishdict.json', 'usenkeymap.json', (0.7, 0.3))
-print mykbspell.typoDistance('t','d')
-str1 = 'time'
-str2 = 'time'
-print 'distance between "{}" and "{}" is {}'.format(str1, str2, mykbspell.keyboard_damerau_levenshtein_distance(str1, str2))
-
-tstr = 'nad'
-ctstr = mykbspell.correction(tstr)
-print 'the spell correction: {} > {}'.format(tstr, mykbspell.correction(tstr))
-print 'distance between "{}" and "{}" is {}'.format(tstr, ctstr, mykbspell.keyboard_damerau_levenshtein_distance(tstr, ctstr))
