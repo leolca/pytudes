@@ -5,7 +5,6 @@ import json
 from collections import Counter
 from math import log10
 
-
 def exists(path):
     """Test whether a path exists. Returns False for broken symbolic links."""
     try:
@@ -173,13 +172,23 @@ class KeyboardSpell(Spell):
         Spell.__init__(self, spelldic)
         #super(self.__class__, self).__init__(spelldic)
         # or Spell.__init__(self, dicFile)
-        self.kblayout = self.load_keyboard_layout(keyboardlayoutfile)
-        if weightObjFun is None:
-           self.weightObjFun = (0.5, 0.5)
+        self.load_keyboard_layout(keyboardlayoutfile)
+        self.set_weightObjFun(weightObjFun)
+        #if weightObjFun is None:
+        #   self.weightObjFun = (0.5, 0.5)
+        #else:
+        #   self.set_weightObjFun(weightObjFun)
+           #if sum(weightObjFun) != 1:
+           #   raise TypeError("Weights do not sum 1.")
+           #self.weightObjFun = weightObjFun 
+
+    def set_weightObjFun(self, weight):
+        if weight is None:
+            self.weightObjFun = (0.5, 0.5)
         else:
-           if sum(weightObjFun) != 1:
-              raise TypeError("Weights do not sum 1.")
-           self.weightObjFun = weightObjFun 
+            if sum(weight) != 1:
+                raise TypeError("Weights do not sum 1.")
+            self.weightObjFun = weight
 
     def load_keyboard_layout(self, keyboardlayoutfile):
         """ 
@@ -187,13 +196,14 @@ class KeyboardSpell(Spell):
            Args:
               keyboardlayoutfile: A keyboard layout file in JSON format or using python syntax.
         """
-        if keyboardlayoutfile.endswith('.json'):
-           with open(keyboardlayoutfile, 'r') as f:
-                return json.load(f)
-        else:
-           import ast
-           with open(keyboardlayoutfile, 'r') as f:
-                return ast.literal_eval(f.read())
+        if keyboardlayoutfile is not None:
+           if keyboardlayoutfile.endswith('.json'):
+              with open(keyboardlayoutfile, 'r') as f:
+                   self.kblayout = json.load(f)
+           else:
+              import ast
+              with open(keyboardlayoutfile, 'r') as f:
+                   self.kblayout = ast.literal_eval(f.read())
 
     def getCharacterCoord(self, c):
         """
@@ -202,6 +212,8 @@ class KeyboardSpell(Spell):
         """
         row = -1
         column = -1
+        if self.kblayout is None:
+            raise Exception("Speller keyboard is empty!")
         for kb in self.kblayout:
             for r in kb:
                 if c in r:
@@ -230,12 +242,12 @@ class KeyboardSpell(Spell):
         d = {}
         lenstr1 = len(s1)
         lenstr2 = len(s2)
-        for i in xrange(-1,lenstr1+1):
+        for i in range(-1,lenstr1+1):
             d[(i,-1)] = i+1
-        for j in xrange(-1,lenstr2+1):
+        for j in range(-1,lenstr2+1):
             d[(-1,j)] = j+1
-        for i in xrange(lenstr1):
-            for j in xrange(lenstr2):
+        for i in range(lenstr1):
+            for j in range(lenstr2):
                 if s1[i] == s2[j]:
                    cost = 0
                 else:
@@ -310,3 +322,10 @@ class PhoneticSpell(Spell):
 ########################################################################################################
 # @property
 # @blabla.setter
+
+
+# probability smoothing
+
+########################################################################################################
+
+# soundex spell checker

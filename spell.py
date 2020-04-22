@@ -115,6 +115,13 @@ if __name__ == '__main__':
     spelltest(Testset(open('spell-testset-complete.txt')), False, True)
 
 
-####
+#### https://www.dcs.bbk.ac.uk/~ROGER/corpora.html
+#### wget https://www.dcs.bbk.ac.uk/~ROGER/missp.dat 
 #### $ cat missp.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$2=":"OFS$2}1' | sed 's/ : /: /g' > spell-testset-complete.txt
-####
+
+#### wget https://www.dcs.bbk.ac.uk/~ROGER/missp.dat -O birkbeck.dat
+#### cat birkbeck.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$2=":"OFS$2}1' | sed 's/ : /: /g' > spell-testset-birkbeck.txt
+#### wget https://www.dcs.bbk.ac.uk/~ROGER/aspell.dat 
+#### cat aspell.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$2=":"OFS$2}1' | sed 's/ : /: /g' > spell-testset-aspell.txt
+#### wget https://www.dcs.bbk.ac.uk/~ROGER/wikipedia.dat
+#### cat wikipedia.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$2=":"OFS$2}1' | sed 's/ : /: /g' > spell-testset-wikipedia.txt

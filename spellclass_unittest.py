@@ -36,11 +36,10 @@ def my_timer(orig_func):
         t2 = time.time() - t1
         print('{} ran in: {} sec'.format(orig_func.__name__, t2))
         return result
-
     return wrapper
 
 
-class TestSpellcheck(unittest.TestCase):
+class TestSpell(unittest.TestCase):
    
     # test data dictionaty from Roger Mitton's Home Page
     testdata =  {'birkbeck': 'https://www.dcs.bbk.ac.uk/~ROGER/missp.dat', 
@@ -48,7 +47,7 @@ class TestSpellcheck(unittest.TestCase):
                  'wikipedia': 'https://www.dcs.bbk.ac.uk/~ROGER/wikipedia.dat'
                 }
  
-    N = None    # control how many tests will be performed (if None, tests everything)
+    N = 10              # control how many tests will be performed (if None, tests everything)
     test_count = [0, 0] # count the number of tests (test_count[0]) and errors (test_count[1])
 
     def setUp(self):
@@ -73,6 +72,9 @@ class TestSpellcheck(unittest.TestCase):
             for (right, wrongs) in (line.split(':') for line in lines)
             for wrong in wrongs.split()]
 
+    def loadSpellFromCorpus(self, filename):
+        return sc.Spell.from_text_corpus( filename )
+
     @my_logger
     @my_timer
     def test_create_spellchecker_from_corpus(self):
@@ -87,14 +89,14 @@ class TestSpellcheck(unittest.TestCase):
                                 ('word', 'word'),               # known
                                 ('quintessential', 'quintessential'), # unknown
                              )
-        myspell = sc.Spell.from_text_corpus( corpusfile )
+        myspell = self.loadSpellFromCorpus( corpusfile )
         logger.info( "spellchecker created from {}".format( corpusfile ) )
         logger.info( "number of words: {}".format( myspell.WORDS_len() ) )
         logger.info( "corpus length: {}".format( myspell.get_corpus_length() ) )
         for test in small_test_set:
             self.test_count[0]+=1
             try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {}".format( test[1] ))
-            except AssertionError as e: 
+            except AssertionError as e:
                 self.verificationErrors.append(str(e))
                 self.test_count[1]+=1
         del myspell
@@ -136,6 +138,22 @@ class TestSpellcheck(unittest.TestCase):
                         self.verificationErrors.append(str(e))
                         self.test_count[1]+=1
             del tests
+
+class TestKeyboardSpell(TestSpell):
+    #keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
+
+    def loadSpellFromCorpus(self, filename=None, keyboardlayoutfile=None):
+        myspell = sc.KeyboardSpell.from_text_corpus( filename )
+        myspell.load_keyboard_layout('qwertyKeymap.json')   # use QWERTY as default keymap
+        myspell.set_weight = (0.7, 0.3)
+        return myspell
+
+        #if filename is None:
+        #    filename = 'englishdict.json'
+        #if keyboardlayoutfile is None:
+        #    keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
+        #return sc.KeyboardSpell(filename, keyboardlayoutfile, (0.7, 0.3))
+
 
 def main():
     unittest.main()
