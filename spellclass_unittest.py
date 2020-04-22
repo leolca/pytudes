@@ -48,8 +48,11 @@ class TestSpell(unittest.TestCase):
                 }
  
     N = 10              # control how many tests will be performed (if None, tests everything)
-    test_count = [0, 0] # count the number of tests (test_count[0]) and errors (test_count[1])
     testDataSet = []
+
+    def __init__(self, *args, **kwargs):
+        super(TestSpell, self).__init__(*args, **kwargs)
+        self.test_count = [0, 0] # count the number of tests (test_count[0]) and errors (test_count[1])
 
     def setUp(self):
         """
@@ -98,7 +101,7 @@ class TestSpell(unittest.TestCase):
         logger.info( "spellchecker created from {}".format( corpusfile ) )
         logger.info( "number of words: {}".format( myspell.WORDS_len() ) )
         logger.info( "corpus length: {}".format( myspell.get_corpus_length() ) )
-        self.resetTestCount()
+        #self.resetTestCount()
         for test in small_test_set:
             self.test_count[0]+=1
             try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {}".format( test[1] ))
@@ -137,7 +140,7 @@ class TestSpell(unittest.TestCase):
         self.download_testdata()
         corpusfile = 'big.txt'
         myspell = sc.Spell.from_text_corpus( corpusfile )
-        self.resetTestCount()
+        #self.resetTestCount()
         for right, wrong in self.testDataSet:
             with self.subTest(right=right):
                  self.test_count[0]+=1
