@@ -49,6 +49,7 @@ class TestSpell(unittest.TestCase):
  
     N = 10              # control how many tests will be performed (if None, tests everything)
     test_count = [0, 0] # count the number of tests (test_count[0]) and errors (test_count[1])
+    testDataSet = []
 
     def setUp(self):
         """
@@ -62,7 +63,8 @@ class TestSpell(unittest.TestCase):
         """
         for e in self.verificationErrors:
             logger.info(e)
-        logger.info('{} errors were found in {} cases'.format(str(self.test_count[1]), str(self.test_count[0])))
+        logger.info('{} has not corrected {} from {} spelling errors'.format(self.__class__.__name__, str(self.test_count[1]), str(self.test_count[0])))
+        print('{} has not corrected {} from {} spelling errors'.format(self.__class__.__name__, str(self.test_count[1]), str(self.test_count[0])))
 
     def Testset(self, lines):
         """
@@ -71,6 +73,9 @@ class TestSpell(unittest.TestCase):
         return [(right, wrong)
             for (right, wrongs) in (line.split(':') for line in lines)
             for wrong in wrongs.split()]
+
+    def resetTestCount(self):
+        self.test_count = [0, 0]
 
     def loadSpellFromCorpus(self, filename):
         return sc.Spell.from_text_corpus( filename )
@@ -93,6 +98,7 @@ class TestSpell(unittest.TestCase):
         logger.info( "spellchecker created from {}".format( corpusfile ) )
         logger.info( "number of words: {}".format( myspell.WORDS_len() ) )
         logger.info( "corpus length: {}".format( myspell.get_corpus_length() ) )
+        self.resetTestCount()
         for test in small_test_set:
             self.test_count[0]+=1
             try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {}".format( test[1] ))
@@ -108,12 +114,19 @@ class TestSpell(unittest.TestCase):
         download all data and process to create a file with the following format (each word in a new line):
         word: misspelled1 misspelled2 
         """
-        logger.info("downloading test data set ...")
-        for key in self.testdata:
-            if not os.path.exists(key + ".dat"): 
-                os.system("wget -q " + self.testdata[key]  + " -O "+ key + ".dat")
-            os.system("""cat """ + key  + """.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$1=$1":"}1' | sed '/^:$/d' > spell-testset-""" + key + """.txt""")
-        logger.info("download completed!")
+        if len(TestSpell.testDataSet) == 0:
+           logger.info("downloading test data set ...")
+           for key in self.testdata:
+               if not os.path.exists(key + ".dat"): 
+                   os.system("wget -q " + self.testdata[key]  + " -O "+ key + ".dat")
+               os.system("""cat """ + key  + """.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$1=$1":"}1' | sed '/^:$/d' > spell-testset-""" + key + """.txt""")
+               with open("spell-testset-" + key + ".txt") as f:
+                   tmp = self.Testset( f )
+                   if self.N is not None:
+                      import random
+                      tmp = random.sample(tmp, self.N)
+                   TestSpell.testDataSet.extend( tmp )
+           logger.info("download completed!")
 
     @my_logger
     @my_timer
@@ -124,20 +137,14 @@ class TestSpell(unittest.TestCase):
         self.download_testdata()
         corpusfile = 'big.txt'
         myspell = sc.Spell.from_text_corpus( corpusfile )
-        for key in self.testdata:
-            with open("spell-testset-" + key + ".txt") as f:
-                tests = self.Testset( f )
-            if self.N is not None:
-                import random
-                tests = random.sample(tests, self.N)
-            for right, wrong in tests:
-                with self.subTest(right=right):
-                    self.test_count[0]+=1
-                    try: self.assertEqual(myspell.correction(wrong), right, "the correct spelling is {}".format( right ))
-                    except AssertionError as e: 
-                        self.verificationErrors.append(str(e))
-                        self.test_count[1]+=1
-            del tests
+        self.resetTestCount()
+        for right, wrong in self.testDataSet:
+            with self.subTest(right=right):
+                 self.test_count[0]+=1
+                 try: self.assertEqual(myspell.correction(wrong), right, "the correct spelling is {}".format( right ))
+                 except AssertionError as e: 
+                     self.verificationErrors.append(str(e))
+                     self.test_count[1]+=1
 
 class TestKeyboardSpell(TestSpell):
     #keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
