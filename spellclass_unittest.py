@@ -156,6 +156,8 @@ class TestKeyboardSpell(TestSpell):
         myspell = sc.KeyboardSpell.from_text_corpus( filename )
         myspell.load_keyboard_layout('qwertyKeymap.json')   # use QWERTY as default keymap
         myspell.set_weight = (0.7, 0.3)
+        oddlist = myspell.createoddwordslist()
+        myspell.removefromdic(oddlist)
         return myspell
 
         #if filename is None:

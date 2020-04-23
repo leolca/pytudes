@@ -13,6 +13,12 @@ def exists(path):
         return False
     return True
 
+def convert2unicode(s):
+    if type(s) == str:
+       return unicode(s, "utf-8")
+    else:
+       return s
+
 def words(text): return re.findall(r"\b[a-zA-Z]+['-]?[a-zA-Z]*\b", text.lower())
 
 def nlargest(d, n=None, thekey=None):
@@ -58,6 +64,7 @@ class Spell:
         self.N = self.get_corpus_length()
         self.M = self.get_max_frequency()
         self.m = self.get_min_frequency()
+        self.language = 'en_US'
 
     @classmethod
     def from_file(cls, filename):
@@ -115,6 +122,44 @@ class Spell:
 
     def get_min_frequency(self):
         return self.WORDS[min(self.WORDS, key=self.WORDS.get)]
+
+    def get_hapaxlegomenon(self, n=None, acounter=None):
+        """
+        return a list of hapaxlegomenon
+        if provided if an optional argument, return a list of n-legomenon (integer argumento) or [min,max]-legomenon (list argument with max and min)
+        """
+        if acounter is None:
+           acounter = self.WORDS
+        if n is None:
+           n = [1, 1]
+        if not isinstance(n, list):
+           n = [1, n]
+        return [w for w in acounter if acounter[w] < n[1]+1 and acounter[w] > n[0]-1]
+
+    def removefromdic(self, klist):
+        """
+        remove a list of words from current speller dictionary
+        """
+        for key in klist:
+            if key in self.WORDS:
+               del self.WORDS[key]
+
+    def createoddwordslist(self, n=5, checkEnchant=True):
+        """
+        create a list of odd words (might be used to remove them from the dictionaty)
+        odd words are hapax(n)-legomenon (optionaly, which are not in enchant dictionary)
+        """
+        nlegomenonList = self.get_hapaxlegomenon(5)
+        if checkEnchant:
+           import enchant
+           endic = enchant.Dict(self.language)
+           oddList = []
+           for r in nlegomenonList:
+               if not endic.check(r):
+                  oddList.append(r)
+        else:
+           oddList = nlegomenonList
+        return oddList
 
     def P(self, word):
         """Return the MLE of a word's probability."""
