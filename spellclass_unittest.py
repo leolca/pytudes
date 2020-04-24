@@ -10,6 +10,8 @@ import logging.config
 logging.config.fileConfig('spellclass_unittest.conf')
 logger = logging.getLogger('spellclass_unittest')
 
+__corpusfilename__ = 'small.txt'
+
 def my_logger(orig_func):
     """
     Decorator for unitest to log function calls
@@ -86,7 +88,7 @@ class TestSpell(unittest.TestCase):
     @my_logger
     @my_timer
     def test_create_spellchecker_from_corpus(self):
-        corpusfile = 'big.txt'
+        corpusfile = __corpusfilename__
         small_test_set =    (  ('speling', 'spelling'),   	# insert
                                 ('korrectud','corrected'),      # replace 2
                                 ('bycycle', 'bicycle'),         # replace
@@ -138,7 +140,7 @@ class TestSpell(unittest.TestCase):
         test the list of words in the test datasets
         """
         self.download_testdata()
-        corpusfile = 'big.txt'
+        corpusfile = __corpusfilename__
         myspell = sc.Spell.from_text_corpus( corpusfile )
         #self.resetTestCount()
         for right, wrong in self.testDataSet:
@@ -165,6 +167,17 @@ class TestKeyboardSpell(TestSpell):
         #if keyboardlayoutfile is None:
         #    keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
         #return sc.KeyboardSpell(filename, keyboardlayoutfile, (0.7, 0.3))
+
+
+class TestPhoneticSpell(TestSpell):
+
+    def loadSpellFromCorpus(self, filename=None, pron='ipa', pronounciationdict=None, distinctivefeatures='distinctivefeatures_kirshenbaum_mhulden.csv'):
+        myspell = sc.PhoneticSpell.from_text_corpus( filename, pron, pronounciationdict, distinctivefeatures)
+        #myspell.set_weight = (0.7, 0.3)
+        oddlist = myspell.createoddwordslist()
+        myspell.removefromdic(oddlist)
+        return myspell
+
 
 
 def main():

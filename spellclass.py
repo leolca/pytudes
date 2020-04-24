@@ -81,6 +81,7 @@ class Spell:
         """Create a Spell object from a text corpus."""
         wcounter = cls.load_WORDS_from_corpus(textfile)
         mySpell = cls(wcounter)
+        mySpell.removefromdic( mySpell.createoddwordslist() )
         mySpell.N = mySpell.get_corpus_length()
         mySpell.M = mySpell.get_max_frequency()
         mySpell.m = mySpell.get_min_frequency()
@@ -343,11 +344,11 @@ class KeyboardSpell(Spell):
 ########################################################################################################
 
 class PhoneticSpell(Spell):
-    def __init__(self, spelldic=None, distinctivefeaturesfile=None, weightObjFun=None):
+    def __init__(self, spelldic=None, distinctivefeatures=None, pronounciationdict=None, weightObjFun=None):
         # call the parent constructor
         Spell.__init__(self, spelldic)
-        self.dfeatures = self.load_distinctivefeatures(distinctivefeaturesfile)
-        self.listOfPhones = list(self.dfeatures.phon)
+        self.load_distinctivefeatures(distinctivefeatures)
+        self.loadwordpronounciationdict(pronounciationdict)
         if weightObjFun is None:
            self.weightObjFun = (0.5, 0.5)
         else:
@@ -356,9 +357,206 @@ class PhoneticSpell(Spell):
            self.weightObjFun = weightObjFun
 
     def load_distinctivefeatures(self, dfile):
+        if dfile is not None and exists(dfile):
+           import pandas as pd
+           self.dfeatures = pd.read_csv(dfile, encoding = 'utf8')
+           self.listOfPhones = list(self.dfeatures.phon)
+        else:
+           self.dfeatures = None
+           self.listOfPhones = None
+
+    def loadwordpronounciationdict(self, filename, pron='ipa', N=None):
+        """
+        load (create if dictionary file is not found)
+        uses eSpeaker to get the ipa and kirshenbaum pronounciation
+        """
         import pandas as pd
-        return pd.read_csv(dfile, encoding = 'utf8')
- 
+        if filename is None or not exists(filename):
+            import subprocess
+            df = pd.DataFrame(columns=['word', 'ipa', 'kirshenbaum'])
+            for w in self.WORDS:
+                cmd = "echo {} | ./geteSpeakWordlist.sh -p -k".format(w)
+                out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+                try:
+                    df = df.append( pd.Series(out.decode("utf-8").split(), index = df.columns), ignore_index = True ) 
+                except ValueError:
+                    pass
+        else:
+            df = pd.read_csv(filename, sep='\t', lineterminator='\n', encoding = 'utf8')
+        mdict = {}
+        if pron == 'ipa':
+           zdic = zip(df.word, df.ipa)
+        for z in zdic:
+            if z[0] not in mdict:
+               mdict[z[0]] = z[1]
+            elif pron == 'kirshenbaum':
+               zdic = zip(dfpd.word, dfpd.kirshenbaum)
+               for z in zdic:
+                   if z[0] not in mdict:
+                      mdict[z[0]] = z[1]
+            else:
+               raise NameError('wrong pronouncing dictionary')
+        self.pronouncingDict = mdict
+
+    @classmethod
+    def from_text_corpus(cls, textfile=None, pron='ipa', pronounciationdict=None, distinctivefeatures=None):
+        mySpell = super().from_text_corpus(textfile)
+        mySpell.load_distinctivefeatures(distinctivefeatures)
+        mySpell.loadwordpronounciationdict(pronounciationdict)
+        return mySpell
+
+    def parseUndesirableSymbols(words, undesirableSymbols = ["\xcb\x88", "\xcb\x90", "\xcb\x8c", "'", ",", "\xcb\x90", ":", ";", "2", "-"], replaceSymbols = [('ɜː','ɝ'), ('3:','R')]):
+        if type(words) is dict:
+            for w, value in words.items():
+                rw = parseUndesirableSymbols(value, undesirableSymbols, replaceSymbols)
+                words[w] = value
+            return words
+        elif type(words) is str:
+            for c in undesirableSymbols:
+                words = words.replace(c, "")
+            for c,r in replaceSymbols:
+                words = words.replace(c, r)
+            return words
+        else:
+            return words
+
+     def createSpellingDict(pdic, wDic=self.WORDS):
+         """
+         create spelling dictionary using the most frequent word (when two words have the same pronouncing)
+         """
+         sdic = {}
+         for k, v in pdic.iteritems():
+             if v not in sdic:
+                sdic[v] = k
+             elif wDic[k] > wDic[sdic[v]]:
+                sdic[v] = k
+         return sdic
+
+    def getPhonesDataFrame(filename='phones_eqvs_table.txt'):
+        df = pd.read_csv(filename, encoding = 'utf8')
+        return df
+
+    def findWordGivenPhonetic(phonetic, mdic):
+        rl = []
+        for k,v in mdic.iteritems():
+            if v == phonetic:
+               rl.append(k)
+        return rl
+
+    def getWordPhoneticTranscription(word, alphabet=None, mdic=None):
+        if mdic is not None and word in mdic:
+           return parseUndesirableSymbols(mdic[word]) 
+        else:
+           if alphabet is None or alphabet.lower() == 'kirshenbaum':
+              txtalphabet = '-x'
+           elif alphabet.lower() == 'ipa':
+              txtalphabet = '--ipa'
+           out = subprocess.Popen(['espeak', '-q', txtalphabet, word], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+           stdout,stderr = out.communicate()
+           if re.search("(\\r|)\\n$", stdout):
+              stdout = re.sub("(\\r|)\\n$", "", stdout)
+           stdout = stdout.lstrip() 
+           return parseUndesirableSymbols(stdout)
+
+     def find_sub_list(sl,l):
+         results=[]
+         sll=len(sl)
+         for ind in (i for i,e in enumerate(l) if e==sl[0]):
+             if l[ind:ind+sll]==sl:
+                results.append((ind,ind+sll-1))
+         return results
+
+     def convertPhoneticWord2PhoneticSequence(word, letters=listOfPhones):
+         """ split word in a sequence of phones 
+             tʃ, dʒ (ipa) and tS, dZ (kirshenbaum) are considered single phones
+         """
+         dlList = [l for l in listOfPhones if len(l) > 1]
+         sequence = [c for c in word]
+         for dl in dlList:
+             sl = find_sub_list(list(dl), sequence)
+             for k in range(len(sl)):
+                 s = sl[k]
+                 sequence[s[0]] = dl
+                 for x in range(s[0]+1,s[1]+1):
+                     sequence.pop(x)
+                     sl = [(i[0]-1, i[1]-1) for i in sl]
+         return sequence
+
+     def convertPhoneticSequence2PhoneticWord(sword):
+         if type(sword[0]) is list:
+            wl = []
+            for w in sword:
+                wl.append(''.join(w))
+            return wl
+         else:
+            return ''.join(sword)
+
+     def hammingdistance(x, y):
+         return sum(abs(x - y))[0]
+
+     def phonedistance(ph1, ph2, df):
+         f1 = f2 = None
+         normfeat = [len(df[column].unique()) for column in df]
+         normfeat.pop(0)
+         if ph1:
+            f1 = df.loc[df['phon'] == ph1].transpose().ix[range(1,len(df.columns))].as_matrix()
+            f1 = np.divide(f1, normfeat)
+         if ph2:
+            print ph2
+            f2 = df.loc[df['phon'] == ph2].transpose().ix[range(1,len(df.columns))].as_matrix()
+            print f2
+            f2 = np.divide(f2, normfeat)
+         if f1 is not None and f2 is not None:
+            return hammingdistance(f1,f2)
+         elif f1 is not None and f1.size > 0:
+            return sum(abs(f1))[0]
+         elif f2 is not None and f2.size > 0:
+            return sum(abs(f2))[0]
+         else:
+            return 0
+
+     def phoneticKnownWords(phoneword, mdic):
+         "The subset of `words` that appear in the dictionary of WORDS."
+          words = []
+          for w in phoneword:
+              possiblewords = findWordGivenPhonetic(w, mdic)
+              if len(possiblewords) > 0:
+                 words.extend(possiblewords)
+          return words
+
+     def phoneticKnown(phoneword, mdic):
+         "The subset of `phonewords` that appear in the dictionary of WORDS."
+         pwords = []
+         for w in phoneword:
+             if w in mdic:
+                pwords.append(w)
+         return pwords
+
+     def phoneticCandidates(pword, mdic):
+         "Generate possible spelling corrections for word."
+         return (phoneticKnown([pword], mdic) or phoneticKnown(phoneedits1(pword), mdic) or phoneticKnown(phoneedits2(pword), mdic) or [pword])
+
+     def phoneedits1(word, letters=listOfPhones):
+         "All edits that are one edit away from `word`."
+          word = convert2unicode(word)
+          word = convertPhoneticWord2PhoneticSequence(word, letters)
+          splits     = [(word[:i], word[i:])    for i in range(len(word) + 1)]
+          deletes    = [L + R[1:]               for L, R in splits if R]
+          deletes    = convertPhoneticSequence2PhoneticWord(deletes)
+          transposes = [L + list(R[1]) + list(R[0]) + R[2:] for L, R in splits if len(R)>1]
+          transposes = convertPhoneticSequence2PhoneticWord(transposes)
+          replaces   = [L + list(c) + R[1:]           for L, R in splits if R for c in letters]
+          replaces   = convertPhoneticSequence2PhoneticWord(replaces)
+          inserts    = [L + list(c) + R               for L, R in splits for c in letters]
+          inserts    = convertPhoneticSequence2PhoneticWord(inserts)
+          return set(list(deletes) + list(transposes) + list(replaces) + list(inserts))
+
+      def phoneedits2(word):
+          "All edits that are two edits away from `word`."
+          return (e2 for e1 in phoneedits1(word) for e2 in phoneedits1(e1))
+
+
+
 #    @classmethod 
 #    def create_complete_dictionart_from_corpus(corpusfile):
 #        $ cat big.txt | tr 'A-Z' 'a-z' | tr -sc 'A-Za-z' '\n' | sort | uniq -c | sort -n -r | head | awk '{print "echo "$1" "$2" $(echo "$2" | ./geteSpeakWordlist.sh -k -p)" }' | sh | column -t
