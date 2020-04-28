@@ -16,12 +16,12 @@ def my_logger(orig_func):
     """
     Decorator for unitest to log function calls
     """ 
-    logger.info('function:{}'.format(orig_func.__name__))
+    logger.info('function:{fname}'.format(fname=orig_func.__name__))
 
     @wraps(orig_func)
     def wrapper(*args, **kwargs):
         logger.info(
-            'Ran with args: {}, and kwargs: {}'.format(args, kwargs))
+            'Ran with args: {args}, and kwargs: {kwargs}'.format(args=args, kwargs=kwargs))
         return orig_func(*args, **kwargs)
     return wrapper
 
@@ -36,7 +36,7 @@ def my_timer(orig_func):
         t1 = time.time()
         result = orig_func(*args, **kwargs)
         t2 = time.time() - t1
-        print('{} ran in: {} sec'.format(orig_func.__name__, t2))
+        print('{fname} ran in: {time} sec'.format(fname=orig_func.__name__, time=t2))
         return result
     return wrapper
 
@@ -68,8 +68,9 @@ class TestSpell(unittest.TestCase):
         """
         for e in self.verificationErrors:
             logger.info(e)
-        logger.info('{} has not corrected {} from {} spelling errors'.format(self.__class__.__name__, str(self.test_count[1]), str(self.test_count[0])))
-        print('{} has not corrected {} from {} spelling errors'.format(self.__class__.__name__, str(self.test_count[1]), str(self.test_count[0])))
+        msg = "{speller} has not corrected {nerrors} from {total} spelling errors".format(speller=self.__class__.__name__, nerrors=str(self.test_count[1]), total=str(self.test_count[0]))
+        logger.info(msg)
+        print(msg)
 
     def Testset(self, lines):
         """
@@ -100,13 +101,13 @@ class TestSpell(unittest.TestCase):
                                 ('quintessential', 'quintessential'), # unknown
                              )
         myspell = self.loadSpellFromCorpus( corpusfile )
-        logger.info( "spellchecker created from {}".format( corpusfile ) )
-        logger.info( "number of words: {}".format( myspell.WORDS_len() ) )
-        logger.info( "corpus length: {}".format( myspell.get_corpus_length() ) )
+        logger.info( "spellchecker created from {corpus}".format( corpus=corpusfile ) )
+        logger.info( "number of words: {n}".format( n=myspell.WORDS_len() ) )
+        logger.info( "corpus length: {l}".format( l=myspell.get_corpus_length() ) )
         #self.resetTestCount()
         for test in small_test_set:
             self.test_count[0]+=1
-            try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {}".format( test[1] ))
+            try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {correct}".format( correct=test[1] ))
             except AssertionError as e:
                 self.verificationErrors.append(str(e))
                 self.test_count[1]+=1
@@ -146,7 +147,7 @@ class TestSpell(unittest.TestCase):
         for right, wrong in self.testDataSet:
             with self.subTest(right=right):
                  self.test_count[0]+=1
-                 try: self.assertEqual(myspell.correction(wrong), right, "the correct spelling is {}".format( right ))
+                 try: self.assertEqual(myspell.correction(wrong), right, "the correct spelling is {correct}".format( correct=right ))
                  except AssertionError as e: 
                      self.verificationErrors.append(str(e))
                      self.test_count[1]+=1
