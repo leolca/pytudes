@@ -1,16 +1,20 @@
 #!/usr/bin/python3
 import unittest
 import os, sys
-import spellclass as sc
+from spell import spell
+from spell.keyboardspell import KeyboardSpell
+from spell.phoneticspell import PhoneticSpell
 from functools import wraps
 import logging
 import logging.config
 
 # create logger
-logging.config.fileConfig('spellclass_unittest.conf')
-logger = logging.getLogger('spellclass_unittest')
+log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_spellclasses.conf')
+logging.config.fileConfig(log_file_path)
+logger = logging.getLogger('spell_unittest')
+projpath = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
 
-__corpusfilename__ = 'small.txt'
+__corpusfilename__ = projpath + "/data/small.txt"
 
 def my_logger(orig_func):
     """
@@ -84,7 +88,7 @@ class TestSpell(unittest.TestCase):
         self.test_count = [0, 0]
 
     def loadSpellFromCorpus(self, filename):
-        return sc.Spell.from_text_corpus( filename )
+        return spell.Spell.from_text_corpus( filename )
 
     @my_logger
     @my_timer
@@ -123,10 +127,10 @@ class TestSpell(unittest.TestCase):
         if len(TestSpell.testDataSet) == 0:
            logger.info("downloading test data set ...")
            for key in self.testdata:
-               if not os.path.exists(key + ".dat"): 
-                   os.system("wget -q " + self.testdata[key]  + " -O "+ key + ".dat")
-               os.system("""cat """ + key  + """.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$1=$1":"}1' | sed '/^:$/d' > spell-testset-""" + key + """.txt""")
-               with open("spell-testset-" + key + ".txt") as f:
+               if not os.path.exists(projpath + "/data/" + key + ".dat"): 
+                   os.system("wget -q " + self.testdata[key]  + " -O "+ projpath + "/data/"+ key + ".dat")
+               os.system("""cat """ + projpath + """/data/""" + key  + """.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$1=$1":"}1' | sed '/^:$/d' > """ + projpath + """/data/spell-testset-""" + key + """.txt""")
+               with open(projpath + "/data/spell-testset-" + key + ".txt") as f:
                    tmp = self.Testset( f )
                    if self.N is not None:
                       import random
@@ -142,7 +146,7 @@ class TestSpell(unittest.TestCase):
         """
         self.download_testdata()
         corpusfile = __corpusfilename__
-        myspell = sc.Spell.from_text_corpus( corpusfile )
+        myspell = spell.Spell.from_text_corpus( corpusfile )
         #self.resetTestCount()
         for right, wrong in self.testDataSet:
             with self.subTest(right=right):
@@ -156,8 +160,8 @@ class TestKeyboardSpell(TestSpell):
     #keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
 
     def loadSpellFromCorpus(self, filename=None, keyboardlayoutfile=None):
-        myspell = sc.KeyboardSpell.from_text_corpus( filename )
-        myspell.load_keyboard_layout('qwertyKeymap.json')   # use QWERTY as default keymap
+        myspell = KeyboardSpell.from_text_corpus( filename )
+        myspell.load_keyboard_layout(projpath + "/data/qwertyKeymap.json")   # use QWERTY as default keymap
         myspell.set_weight = (0.7, 0.3)
         oddlist = myspell.createoddwordslist()
         myspell.removefromdic(oddlist)
@@ -167,13 +171,13 @@ class TestKeyboardSpell(TestSpell):
         #    filename = 'englishdict.json'
         #if keyboardlayoutfile is None:
         #    keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
-        #return sc.KeyboardSpell(filename, keyboardlayoutfile, (0.7, 0.3))
+        #return KeyboardSpell(filename, keyboardlayoutfile, (0.7, 0.3))
 
 
 class TestPhoneticSpell(TestSpell):
 
-    def loadSpellFromCorpus(self, filename=None, pron='ipa', pronounciationdict=None, distinctivefeatures='distinctivefeatures_kirshenbaum_mhulden.csv'):
-        myspell = sc.PhoneticSpell.from_text_corpus( filename, pron, pronounciationdict, distinctivefeatures)
+    def loadSpellFromCorpus(self, filename=None, pron='ipa', pronounciationdict=None, distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"):
+        myspell = PhoneticSpell.from_text_corpus( filename, pron, pronounciationdict, distinctivefeatures)
         #myspell.set_weight = (0.7, 0.3)
         oddlist = myspell.createoddwordslist()
         myspell.removefromdic(oddlist)
