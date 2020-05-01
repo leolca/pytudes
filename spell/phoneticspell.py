@@ -44,16 +44,16 @@ class PhoneticSpell(Spell):
         mdict = {}
         if pron == 'ipa':
            zdic = zip(df.word, df.ipa)
-        for z in zdic:
-            if z[0] not in mdict:
-               mdict[z[0]] = z[1]
-            elif pron == 'kirshenbaum':
-               zdic = zip(dfpd.word, dfpd.kirshenbaum)
-               for z in zdic:
-                   if z[0] not in mdict:
-                      mdict[z[0]] = z[1]
-            else:
-               raise NameError('wrong pronouncing dictionary')
+           for z in zdic:
+               if z[0] not in mdict:
+                  mdict[z[0]] = z[1]
+        elif pron == 'kirshenbaum':
+           zdic = zip(dfpd.word, dfpd.kirshenbaum)
+           for z in zdic:
+               if z[0] not in mdict:
+                  mdict[z[0]] = z[1]
+        else:
+           raise NameError('wrong pronouncing dictionary')
         self.pronouncingDict = mdict
 
     @classmethod
