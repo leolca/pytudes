@@ -19,8 +19,6 @@ def convert2unicode(s):
     else:
        return s
 
-def words(text): return re.findall(r"\b[a-zA-Z]+['-]?[a-zA-Z]*\b", text.lower())
-
 def nlargest(d, n=None, thekey=None):
     """Get the n largest from a dict/list/tuple according to a given key."""
     if len(d) > 1:
@@ -47,15 +45,16 @@ def nlargest(d, n=None, thekey=None):
     else:
        return d
 
-
 class Spell:
     """Base spellchecker class"""
     def __init__(self, spelldic=None, corpus=None):
         """Initialize the spellchecker from as an empty Counter or load data from an existing Counter or from file, using load_WORDS method."""
         if type( spelldic ) is Counter:
-           self.WORDS = spelldic
+            self.WORDS = spelldic
         elif type(spelldic) is str and exists(spelldic):
-             self.WORDS = self.load_WORDS(spelldic)
+            print("----- load_WORDS ---- dic: {}".format(spelldic))
+            self.WORDS = self.load_WORDS(spelldic)
+            print("---- done ----")
         else:
            if corpus is not None:
               self.WORDS = self.load_WORDS_from_corpus(corpus)
@@ -65,16 +64,27 @@ class Spell:
         self.M = self.get_max_frequency()
         self.m = self.get_min_frequency()
         self.language = 'en_US'
+        print("---- creation completed ----")
+
+    @classmethod
+    def words(cls, text): return re.findall(r"\b[a-zA-Z]+['-]?[a-zA-Z]*\b", text.lower())
 
     @classmethod
     def from_file(cls, filename):
         return cls(filename)
 
     @classmethod
+    def from_dictionary(cls, spelldic):
+        if exists(spelldic):
+            myspell = cls(spelldic)
+            print("~~~~~ myspell created ~~~~")
+            return myspell
+
+    @classmethod
     def load_WORDS_from_corpus(cls, corpusfile):
         if exists(corpusfile):
             with open(corpusfile) as f:
-                return Counter(words(f.read()))
+                return Counter(cls.words(f.read()))
 
     @classmethod
     def from_text_corpus(cls, textfile):
@@ -82,20 +92,24 @@ class Spell:
         wcounter = cls.load_WORDS_from_corpus(textfile)
         mySpell = cls(wcounter)
         mySpell.removefromdic( mySpell.createoddwordslist() )
-        mySpell.N = mySpell.get_corpus_length()
-        mySpell.M = mySpell.get_max_frequency()
-        mySpell.m = mySpell.get_min_frequency()
         return mySpell
+
+    def save_dictionary(self, dicfilename):
+        with open(dicfilename, 'w') as f:
+            json.dump(self.WORDS, f, indent=2)
 
     def WORDS_len(self):
         return len(self.WORDS)
 
     def load_WORDS(self, filename):
-        """Read data from a disk file. The file might be a json file or a list of counts and words, one per line, as a typical output of the bash command `uniq -c'."""
+        """
+        Read data from a disk file. 
+        The file might be a json file or a list of counts and words, one per line, as a typical output of the bash command `uniq -c'.
+        """
         if exists(filename):
            try:
-              with open(filename) as f:
-                 return Counter(json.load(f)) 
+               with open(filename) as f:
+                  return Counter(json.load(f)) 
            except ValueError:
               WORDS = Counter()
               with open(filename) as f:

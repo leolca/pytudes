@@ -17,6 +17,27 @@ class KeyboardSpell(Spell):
            #   raise TypeError("Weights do not sum 1.")
            #self.weightObjFun = weightObjFun 
 
+    @classmethod
+    def from_file(cls, filename, keyboardlayoutfile=None, weightObjFun=None):
+        mySpell = super().from_file(filename)
+        mySpell.load_keyboard_layout(keyboardlayoutfile)
+        mySpell.set_weightObjFun(weightObjFun)
+        return mySpell
+
+    @classmethod
+    def from_dictionary(cls, spelldic, keyboardlayoutfile=None, weightObjFun=None):
+        mySpell = super().from_dictionary(spelldic)
+        mySpell.load_keyboard_layout(keyboardlayoutfile)
+        mySpell.set_weightObjFun(weightObjFun)
+        return mySpell
+
+    @classmethod
+    def from_text_corpus(cls, textfile=None, keyboardlayoutfile=None, weightObjFun=None):
+        mySpell = super().from_text_corpus(textfile)
+        mySpell.load_keyboard_layout(keyboardlayoutfile)
+        mySpell.set_weightObjFun(weightObjFun)
+        return mySpell
+
     def set_weightObjFun(self, weight):
         if weight is None:
             self.weightObjFun = (0.5, 0.5)

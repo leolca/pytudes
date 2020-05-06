@@ -14,8 +14,6 @@ logging.config.fileConfig(log_file_path)
 logger = logging.getLogger('spell_unittest')
 projpath = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
 
-__corpusfilename__ = projpath + "/data/small.txt"
-
 def my_logger(orig_func):
     """
     Decorator for unitest to log function calls
@@ -55,6 +53,21 @@ class TestSpell(unittest.TestCase):
  
     N = 10              # control how many tests will be performed (if None, tests everything)
     testDataSet = []
+    testWeights = (0.7, 0.3)
+    corpusfilename = projpath + "/data/small.txt"
+    dictionaryfile = projpath + "/data/englishdict.json"
+    small_test_set =    (  ('speling', 'spelling'),   	# insert
+                           ('korrectud','corrected'),      # replace 2
+                           ('bycycle', 'bicycle'),         # replace
+                           ('inconvient', 'inconvenient'), # insert 2
+                           ('arrainged', 'arranged'),      # delete
+                           ('peotry', 'poetry'),           # transpose
+                           ('peotryy', 'poetry'),          # transpose + delete
+                           ('word', 'word'),               # known
+                           ('quintessential', 'quintessential'), # unknown
+                         )
+
+
 
     def __init__(self, *args, **kwargs):
         super(TestSpell, self).__init__(*args, **kwargs)
@@ -90,26 +103,34 @@ class TestSpell(unittest.TestCase):
     def loadSpellFromCorpus(self, filename):
         return spell.Spell.from_text_corpus( filename )
 
+    def loadSpellFromDictionary(self, filename):
+        return spell.Spell.from_dictionary(filename)
+
     @my_logger
     @my_timer
     def test_create_spellchecker_from_corpus(self):
-        corpusfile = __corpusfilename__
-        small_test_set =    (  ('speling', 'spelling'),   	# insert
-                                ('korrectud','corrected'),      # replace 2
-                                ('bycycle', 'bicycle'),         # replace
-                                ('inconvient', 'inconvenient'), # insert 2
-                                ('arrainged', 'arranged'),      # delete
-                                ('peotry', 'poetry'),           # transpose
-                                ('peotryy', 'poetry'),          # transpose + delete
-                                ('word', 'word'),               # known
-                                ('quintessential', 'quintessential'), # unknown
-                             )
-        myspell = self.loadSpellFromCorpus( corpusfile )
-        logger.info( "spellchecker created from {corpus}".format( corpus=corpusfile ) )
+        myspell = self.loadSpellFromCorpus( self.corpusfilename )
+        logger.info( "spellchecker created from {corpus}".format( corpus=self.corpusfilename ) )
         logger.info( "number of words: {n}".format( n=myspell.WORDS_len() ) )
         logger.info( "corpus length: {l}".format( l=myspell.get_corpus_length() ) )
         #self.resetTestCount()
-        for test in small_test_set:
+        for test in self.small_test_set:
+            self.test_count[0]+=1
+            try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {correct}".format( correct=test[1] ))
+            except AssertionError as e:
+                self.verificationErrors.append(str(e))
+                self.test_count[1]+=1
+        del myspell
+
+    @my_logger
+    @my_timer
+    def test_create_spellchecker_from_dictionary(self):
+        myspell = self.loadSpellFromDictionary( self.dictionaryfile )
+        logger.info( "spellchecker created from {dic}".format( dic=self.dictionaryfile ) )
+        logger.info( "number of words: {n}".format( n=myspell.WORDS_len() ) )
+        logger.info( "corpus length: {l}".format( l=myspell.get_corpus_length() ) )
+        #self.resetTestCount()
+        for test in self.small_test_set:
             self.test_count[0]+=1
             try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {correct}".format( correct=test[1] ))
             except AssertionError as e:
@@ -124,7 +145,7 @@ class TestSpell(unittest.TestCase):
         download all data and process to create a file with the following format (each word in a new line):
         word: misspelled1 misspelled2 
         """
-        if len(TestSpell.testDataSet) == 0:
+        if len(self.testDataSet) == 0:
            logger.info("downloading test data set ...")
            for key in self.testdata:
                if not os.path.exists(projpath + "/data/" + key + ".dat"): 
@@ -145,8 +166,7 @@ class TestSpell(unittest.TestCase):
         test the list of words in the test datasets
         """
         self.download_testdata()
-        corpusfile = __corpusfilename__
-        myspell = spell.Spell.from_text_corpus( corpusfile )
+        myspell = spell.Spell.from_text_corpus( self.corpusfilename )
         #self.resetTestCount()
         for right, wrong in self.testDataSet:
             with self.subTest(right=right):
@@ -159,30 +179,41 @@ class TestSpell(unittest.TestCase):
 class TestKeyboardSpell(TestSpell):
     #keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
 
-    def loadSpellFromCorpus(self, filename=None, keyboardlayoutfile=None):
-        myspell = KeyboardSpell.from_text_corpus( filename )
-        myspell.load_keyboard_layout(projpath + "/data/qwertyKeymap.json")   # use QWERTY as default keymap
-        myspell.set_weight = (0.7, 0.3)
-        oddlist = myspell.createoddwordslist()
-        myspell.removefromdic(oddlist)
+    def loadSpellFromCorpus(self, filename=None, keyboardlayoutfile=None, weightObjFun=None):
+        if filename is None:
+            filename = self.corpusfilename
+        if keyboardlayoutfile is None:
+            keyboardlayoutfile = projpath + "/data/qwertyKeymap.json" # use QWERTY as default keymap
+        if weightObjFun is None:
+            weightObjFun = self.testWeights
+        myspell = KeyboardSpell.from_text_corpus(filename, keyboardlayoutfile, weightObjFun)
         return myspell
 
-        #if filename is None:
-        #    filename = 'englishdict.json'
-        #if keyboardlayoutfile is None:
-        #    keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
-        #return KeyboardSpell(filename, keyboardlayoutfile, (0.7, 0.3))
+    def loadSpellFromDictionary(self, filename=None, keyboardlayoutfile=None, weightObjFun=None):
+        if filename is None:
+            filename = projpath + "/data/englishdict.json"
+        if keyboardlayoutfile is None:
+            keyboardlayoutfile = projpath + "/data/qwertyKeymap.json"
+        if weightObjFun is None:
+            weightObjFun = self.testWeights
+        myspell = KeyboardSpell.from_dictionary(filename, keyboardlayoutfile, weightObjFun)
+        return myspell
 
 
 class TestPhoneticSpell(TestSpell):
 
     def loadSpellFromCorpus(self, filename=None, pron='ipa', pronounciationdict=None, distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"):
-        myspell = PhoneticSpell.from_text_corpus( filename, pron, pronounciationdict, distinctivefeatures)
+        if filename is None:
+            filename = self.corpusfilename
+        myspell = PhoneticSpell.from_text_corpus(filename, pron, pronounciationdict, distinctivefeatures)
         #myspell.set_weight = (0.7, 0.3)
-        oddlist = myspell.createoddwordslist()
-        myspell.removefromdic(oddlist)
         return myspell
 
+    def loadSpellFromDictionary(self, filename=None, pron='ipa', pronounciationdict=None, distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"):
+        if filename is None:
+            filename = projpath + "/data/englishdict.json"
+        myspell = PhoneticSpell.from_dictionary(filename, pron, pronounciationdict, distinctivefeatures)
+        return myspell
 
 
 def main():

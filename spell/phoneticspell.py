@@ -39,22 +39,47 @@ class PhoneticSpell(Spell):
                     df = df.append( pd.Series(out.decode("utf-8").split(), index = df.columns), ignore_index = True ) 
                 except ValueError:
                     pass
+            if filename is not None:
+                df.to_csv(filename, encoding='utf-8')
         else:
             df = pd.read_csv(filename, sep='\t', lineterminator='\n', encoding = 'utf8')
         mdict = {}
         if pron == 'ipa':
-           zdic = zip(df.word, df.ipa)
-           for z in zdic:
-               if z[0] not in mdict:
-                  mdict[z[0]] = z[1]
+            zdic = zip(df.word, df.ipa)
+            for z in zdic:
+                if z[0] not in mdict:
+                   mdict[z[0]] = z[1]
         elif pron == 'kirshenbaum':
-           zdic = zip(dfpd.word, dfpd.kirshenbaum)
-           for z in zdic:
-               if z[0] not in mdict:
-                  mdict[z[0]] = z[1]
+            zdic = zip(dfpd.word, dfpd.kirshenbaum)
+            for z in zdic:
+                if z[0] not in mdict:
+                   mdict[z[0]] = z[1]
         else:
-           raise NameError('wrong pronouncing dictionary')
+            raise NameError('wrong pronouncing dictionary')
         self.pronouncingDict = mdict
+
+    @classmethod
+    def from_parent(cls, parent):
+        return cls(parent)
+
+    @classmethod
+    def from_file(cls, filename, pron='ipa', pronounciationdict=None, distinctivefeatures=None):
+        mySpell = super().from_file(filename)
+        mySpell.load_distinctivefeatures(distinctivefeatures)
+        mySpell.loadwordpronounciationdict(pronounciationdict)
+        return mySpell
+
+    @classmethod
+    def from_dictionary(cls, spelldic, pron='ipa', pronounciationdict=None, distinctivefeatures=None):
+        print("HERE I AM")
+        print(spelldic)
+        mySpell = cls.from_parent( super().from_dictionary(spelldic) )
+        #mySpell = super(PhoneticSpell, cls).__init__(spelldic=spelldic)
+        print("I AM HERE")
+        mySpell.load_distinctivefeatures(distinctivefeatures)
+        print("AMOST THERE")
+        mySpell.loadwordpronounciationdict(pronounciationdict)
+        return mySpell
 
     @classmethod
     def from_text_corpus(cls, textfile=None, pron='ipa', pronounciationdict=None, distinctivefeatures=None):
@@ -68,6 +93,10 @@ class PhoneticSpell(Spell):
             for w, value in words.items():
                 rw = parseUndesirableSymbols(value, undesirableSymbols, replaceSymbols)
                 words[w] = value
+            return words
+        elif type(words) is list:
+            for iw, w in enumerate(words):
+                words[iw] = parseUndesirableSymbols(w, undesirableSymbols, replaceSymbols)
             return words
         elif type(words) is str:
             for c in undesirableSymbols:
