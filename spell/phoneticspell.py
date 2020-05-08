@@ -7,7 +7,6 @@ class PhoneticSpell(Spell):
     def __init__(self, spelldic=None, corpusfile=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None, weightObjFun=None):
         # call the parent constructor
         Spell.__init__(self, spelldic, corpusfile)
-        print("Constructor : PhoneticSpell")
         if pronalphabet in __pronunciationalphabet__:
             self.pronalphabet = pronalphabet
         else:
@@ -15,7 +14,6 @@ class PhoneticSpell(Spell):
         self.loaddistinctivefeatures(distinctivefeatures)
         self.loadwordpronounciationdict(pronounciationdict, self.pronalphabet)
         self.spellingDict = self.createSpellingDict()
-        print("spellingDict created")
         if weightObjFun is None:
            self.weightObjFun = (0.5, 0.5)
         else:
@@ -40,7 +38,6 @@ class PhoneticSpell(Spell):
         """
         if self.pronalphabet is None:
             raise TypeError("A pronounciation alphabet must be choosen. Only the following are supported: " + ", ".join(__pronunciationalphabet__))
-        print("++++++ PANDAS +++++++")
         import pandas as pd
         if filename is None or not exists(filename):
             import subprocess
@@ -104,7 +101,7 @@ class PhoneticSpell(Spell):
 #        #mySpell.loadwordpronounciationdict(pronounciationdict)
 #        return mySpell
 
-    def parseUndesirableSymbols(self, words, undesirableSymbols = ["\xcb\x88", "\xcb\x90", "\xcb\x8c", "ˈ", "'", ",", "\xcb\x90", "ː", ":", ";", "2", "-"], replaceSymbols = [('ɜː','ɝ'), ('3:','R')]):
+    def parseUndesirableSymbols(self, words, undesirableSymbols = ["\xcb\x88", "\xcb\x90", "\xcb\x8c", "ˈ", "'", ",", "ˌ", "\xcb\x90", "ː", ":", ";", "2", "-"], replaceSymbols = [('ɜː','ɝ'), ('3:','R')]):
         if type(words) is dict:
             for w, value in words.items():
                 rw = self.parseUndesirableSymbols(value, undesirableSymbols, replaceSymbols)
@@ -176,8 +173,9 @@ class PhoneticSpell(Spell):
         return results
 
     def convertPhoneticWord2PhoneticSequence(self, word, letters=None):
-        """ split word in a sequence of phones 
-            tʃ, dʒ (ipa) and tS, dZ (kirshenbaum) are considered single phones
+        """ 
+        split word in a sequence of phones 
+        tʃ, dʒ (ipa) and tS, dZ (kirshenbaum) are considered single phones
         """
         if letters is None:
             letters = self.listOfPhones
@@ -205,25 +203,6 @@ class PhoneticSpell(Spell):
     def hammingdistance(self, x, y):
         return sum(abs(x - y))[0]
 
-    def phonedistance(self, ph1, ph2, df):
-        f1 = f2 = None
-        normfeat = [len(df[column].unique()) for column in df]
-        normfeat.pop(0)
-        if ph1:
-           f1 = df.loc[df['phon'] == ph1].transpose().iloc[range(1,len(df.columns))].values
-           f1 = np.divide(f1, normfeat)
-        if ph2:
-           f2 = df.loc[df['phon'] == ph2].transpose().iloc[range(1,len(df.columns))].values
-           f2 = np.divide(f2, normfeat)
-        if f1 is not None and f2 is not None:
-           return self.hammingdistance(f1,f2)
-        elif f1 is not None and f1.size > 0:
-           return sum(abs(f1))[0]
-        elif f2 is not None and f2.size > 0:
-           return sum(abs(f2))[0]
-        else:
-           return 0
-
     def phoneticKnownWords(self, phoneword, mdic):
         "The subset of `words` that appear in the dictionary of WORDS."
         words = []
@@ -249,7 +228,6 @@ class PhoneticSpell(Spell):
         "All edits that are one edit away from `word`."
         if letters is None:
             letters = self.listOfPhones
-        #word = convert2unicode(word)
         word = self.convertPhoneticWord2PhoneticSequence(word, letters)
         splits     = [(word[:i], word[i:])    for i in range(len(word) + 1)]
         deletes    = [L + R[1:]               for L, R in splits if R]
@@ -440,6 +418,7 @@ class PhoneticSpell(Spell):
         numfeatures = df.shape[1]
         d = 0
         if weight[1] > 0:
+           #print("tword={tword},oword={oword}".format(tword=tword,oword=oword))
            d = self.phone_damerau_levenshtein_distance(tword, oword, df, letters)
         if type(tword) is list:
            tword = self.convertPhoneticSequence2PhoneticWord(tword)

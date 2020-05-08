@@ -63,7 +63,6 @@ class Spell:
         self.M = self.get_max_frequency()
         self.m = self.get_min_frequency()
         self.language = 'en_US'
-        print("---- creation completed ----")
 
 #    @classmethod
     def words(cls, text): return re.findall(r"\b[a-zA-Z]+['-]?[a-zA-Z]*\b", text.lower())

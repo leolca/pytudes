@@ -104,7 +104,6 @@ class TestSpell(unittest.TestCase):
         return Spell.from_file(spelldic=None, corpusfile=filename)
 
     def loadSpellFromDictionary(self, filename):
-        print("--- base loadSpellFromDictionary ---")
         return Spell.from_file(spelldic=filename, corpusfile=None)
 
     @my_logger
@@ -126,7 +125,6 @@ class TestSpell(unittest.TestCase):
     @my_logger
     @my_timer
     def test_create_spellchecker_from_dictionary(self):
-        print("--- test_create_spellchecker_from_dictionary ---")
         myspell = self.loadSpellFromDictionary( self.dictionaryfile )
         logger.info( "spellchecker created from {dic}".format( dic=self.dictionaryfile ) )
         logger.info( "number of words: {n}".format( n=myspell.WORDS_len() ) )
@@ -174,6 +172,7 @@ class TestSpell(unittest.TestCase):
         for right, wrong in self.testDataSet:
             with self.subTest(right=right):
                  self.test_count[0]+=1
+                 #print("wrong word:{wrong}, right word:{right}".format(wrong=wrong, right=right))
                  try: self.assertEqual(myspell.correction(wrong), right, "the correct spelling is {correct}".format( correct=right ))
                  except AssertionError as e: 
                      self.verificationErrors.append(str(e))
@@ -214,13 +213,12 @@ class TestPhoneticSpell(TestSpell):
         if pronounciationdict is None:
             pronounciationdict = projpath+"/data/wordpronunciation.txt"
         if distinctivefeatures is None:
-            distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"
+            distinctivefeatures=projpath+"/data/distinctivefeatures_ipa_mhulden.csv"
         myspell = PhoneticSpell.from_file(spelldic=None, corpusfile=filename, pronalphabet=pronalphabet, pronounciationdict=pronounciationdict, distinctivefeatures=distinctivefeatures)
         #myspell.set_weight = (0.7, 0.3)
         return myspell
 
     def loadSpellFromDictionary(self, filename=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None):
-        print("--- phonetic loadSpellFromDictionary ---")
         if filename is None:
             filename = projpath + "/data/englishdict.json"
         if pronalphabet is None:
@@ -228,7 +226,7 @@ class TestPhoneticSpell(TestSpell):
         if pronounciationdict is None:
             pronounciationdict = projpath+"/data/wordpronunciation.txt"
         if distinctivefeatures is None:
-            distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"
+            distinctivefeatures=projpath+"/data/distinctivefeatures_ipa_mhulden.csv"
         myspell = PhoneticSpell.from_file(spelldic=filename, corpusfile=None, pronalphabet=pronalphabet, pronounciationdict=pronounciationdict, distinctivefeatures=distinctivefeatures)
         return myspell
 
