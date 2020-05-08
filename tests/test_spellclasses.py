@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 import unittest
 import os, sys
-from spell import spell
-from spell.keyboardspell import KeyboardSpell
-from spell.phoneticspell import PhoneticSpell
+from spell import Spell
+from spell import KeyboardSpell
+from spell import PhoneticSpell
 from functools import wraps
 import logging
 import logging.config
@@ -101,10 +101,11 @@ class TestSpell(unittest.TestCase):
         self.test_count = [0, 0]
 
     def loadSpellFromCorpus(self, filename):
-        return spell.Spell.from_text_corpus( filename )
+        return Spell.from_file(spelldic=None, corpusfile=filename)
 
     def loadSpellFromDictionary(self, filename):
-        return spell.Spell.from_dictionary(filename)
+        print("--- base loadSpellFromDictionary ---")
+        return Spell.from_file(spelldic=filename, corpusfile=None)
 
     @my_logger
     @my_timer
@@ -125,6 +126,7 @@ class TestSpell(unittest.TestCase):
     @my_logger
     @my_timer
     def test_create_spellchecker_from_dictionary(self):
+        print("--- test_create_spellchecker_from_dictionary ---")
         myspell = self.loadSpellFromDictionary( self.dictionaryfile )
         logger.info( "spellchecker created from {dic}".format( dic=self.dictionaryfile ) )
         logger.info( "number of words: {n}".format( n=myspell.WORDS_len() ) )
@@ -132,7 +134,8 @@ class TestSpell(unittest.TestCase):
         #self.resetTestCount()
         for test in self.small_test_set:
             self.test_count[0]+=1
-            try: self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {correct}".format( correct=test[1] ))
+            try:
+                self.assertEqual(myspell.correction(test[0]), test[1], "the correct spelling is {correct}".format( correct=test[1] ))
             except AssertionError as e:
                 self.verificationErrors.append(str(e))
                 self.test_count[1]+=1
@@ -166,7 +169,7 @@ class TestSpell(unittest.TestCase):
         test the list of words in the test datasets
         """
         self.download_testdata()
-        myspell = spell.Spell.from_text_corpus( self.corpusfilename )
+        myspell = Spell.from_file(spelldic=None, corpusfile=self.corpusfilename)
         #self.resetTestCount()
         for right, wrong in self.testDataSet:
             with self.subTest(right=right):
@@ -186,33 +189,47 @@ class TestKeyboardSpell(TestSpell):
             keyboardlayoutfile = projpath + "/data/qwertyKeymap.json" # use QWERTY as default keymap
         if weightObjFun is None:
             weightObjFun = self.testWeights
-        myspell = KeyboardSpell.from_text_corpus(filename, keyboardlayoutfile, weightObjFun)
+        myspell = KeyboardSpell.from_file(spelldic=None, corpusfile=filename, keyboardlayoutfile=keyboardlayoutfile, weightObjFun=weightObjFun)
         return myspell
 
     def loadSpellFromDictionary(self, filename=None, keyboardlayoutfile=None, weightObjFun=None):
+        print("--- keyboard loadSpellFromDictionary ---")
         if filename is None:
             filename = projpath + "/data/englishdict.json"
         if keyboardlayoutfile is None:
             keyboardlayoutfile = projpath + "/data/qwertyKeymap.json"
         if weightObjFun is None:
             weightObjFun = self.testWeights
-        myspell = KeyboardSpell.from_dictionary(filename, keyboardlayoutfile, weightObjFun)
+        myspell = KeyboardSpell.from_file(spelldic=filename, corpusfile=None, keyboardlayoutfile=keyboardlayoutfile, weightObjFun=weightObjFun)
         return myspell
 
 
 class TestPhoneticSpell(TestSpell):
 
-    def loadSpellFromCorpus(self, filename=None, pron='ipa', pronounciationdict=None, distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"):
+    def loadSpellFromCorpus(self, filename=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None):
         if filename is None:
             filename = self.corpusfilename
-        myspell = PhoneticSpell.from_text_corpus(filename, pron, pronounciationdict, distinctivefeatures)
+        if pronalphabet is None:
+            pronalphabet = 'ipa'
+        if pronounciationdict is None:
+            pronounciationdict = projpath+"/data/wordpronunciation.txt"
+        if distinctivefeatures is None:
+            distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"
+        myspell = PhoneticSpell.from_file(spelldic=None, corpusfile=filename, pronalphabet=pronalphabet, pronounciationdict=pronounciationdict, distinctivefeatures=distinctivefeatures)
         #myspell.set_weight = (0.7, 0.3)
         return myspell
 
-    def loadSpellFromDictionary(self, filename=None, pron='ipa', pronounciationdict=None, distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"):
+    def loadSpellFromDictionary(self, filename=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None):
+        print("--- phonetic loadSpellFromDictionary ---")
         if filename is None:
             filename = projpath + "/data/englishdict.json"
-        myspell = PhoneticSpell.from_dictionary(filename, pron, pronounciationdict, distinctivefeatures)
+        if pronalphabet is None:
+            pronalphabet = 'ipa'
+        if pronounciationdict is None:
+            pronounciationdict = projpath+"/data/wordpronunciation.txt"
+        if distinctivefeatures is None:
+            distinctivefeatures=projpath+"/data/distinctivefeatures_kirshenbaum_mhulden.csv"
+        myspell = PhoneticSpell.from_file(spelldic=filename, corpusfile=None, pronalphabet=pronalphabet, pronounciationdict=pronounciationdict, distinctivefeatures=distinctivefeatures)
         return myspell
 
 

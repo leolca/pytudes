@@ -13,11 +13,11 @@ def exists(path):
         return False
     return True
 
-def convert2unicode(s):
-    if type(s) == str:
-       return unicode(s, "utf-8")
-    else:
-       return s
+#def convert2unicode(s):
+#    if type(s) == str:
+#       return unicode(s, "utf-8")
+#    else:
+#       return s
 
 def nlargest(d, n=None, thekey=None):
     """Get the n largest from a dict/list/tuple according to a given key."""
@@ -47,17 +47,16 @@ def nlargest(d, n=None, thekey=None):
 
 class Spell:
     """Base spellchecker class"""
-    def __init__(self, spelldic=None, corpus=None):
+    def __init__(self, spelldic=None, corpusfile=None):
         """Initialize the spellchecker from as an empty Counter or load data from an existing Counter or from file, using load_WORDS method."""
+        self.corpusfile = corpusfile
         if type( spelldic ) is Counter:
             self.WORDS = spelldic
         elif type(spelldic) is str and exists(spelldic):
-            print("----- load_WORDS ---- dic: {}".format(spelldic))
             self.WORDS = self.load_WORDS(spelldic)
-            print("---- done ----")
         else:
-           if corpus is not None:
-              self.WORDS = self.load_WORDS_from_corpus(corpus)
+           if self.corpusfile is not None:
+              self.WORDS = self.load_WORDS_from_corpus(self.corpusfile)
            else:
               self.WORDS = Counter()
         self.N = self.get_corpus_length()
@@ -66,33 +65,33 @@ class Spell:
         self.language = 'en_US'
         print("---- creation completed ----")
 
-    @classmethod
+#    @classmethod
     def words(cls, text): return re.findall(r"\b[a-zA-Z]+['-]?[a-zA-Z]*\b", text.lower())
 
     @classmethod
-    def from_file(cls, filename):
-        return cls(filename)
+    def from_file(cls, spelldic=None, corpusfile=None):
+        return cls(spelldic, corpusfile)
 
-    @classmethod
-    def from_dictionary(cls, spelldic):
-        if exists(spelldic):
-            myspell = cls(spelldic)
-            print("~~~~~ myspell created ~~~~")
-            return myspell
+#    @classmethod
+#    def from_dictionary(cls, spelldic):
+#        if exists(spelldic):
+#            myspell = cls(spelldic)
+#            print("~~~~~ myspell created ~~~~")
+#            return myspell
 
-    @classmethod
+#    @classmethod
     def load_WORDS_from_corpus(cls, corpusfile):
         if exists(corpusfile):
             with open(corpusfile) as f:
                 return Counter(cls.words(f.read()))
 
-    @classmethod
-    def from_text_corpus(cls, textfile):
-        """Create a Spell object from a text corpus."""
-        wcounter = cls.load_WORDS_from_corpus(textfile)
-        mySpell = cls(wcounter)
-        mySpell.removefromdic( mySpell.createoddwordslist() )
-        return mySpell
+#    @classmethod
+#    def from_text_corpus(cls, textfile):
+#        """Create a Spell object from a text corpus."""
+#        wcounter = cls.load_WORDS_from_corpus(textfile)
+#        mySpell = cls(wcounter)
+#        mySpell.removefromdic( mySpell.createoddwordslist() )
+#        return mySpell
 
     def save_dictionary(self, dicfilename):
         with open(dicfilename, 'w') as f:

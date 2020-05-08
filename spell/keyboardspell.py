@@ -2,9 +2,9 @@
 from spell.spell import *
 
 class KeyboardSpell(Spell):
-    def __init__(self, spelldic=None, keyboardlayoutfile=None, weightObjFun=None):
+    def __init__(self, spelldic=None, corpusfile=None, keyboardlayoutfile=None, weightObjFun=None):
         # call the parent constructor
-        Spell.__init__(self, spelldic)
+        Spell.__init__(self, spelldic, corpusfile)
         #super(self.__class__, self).__init__(spelldic)
         # or Spell.__init__(self, dicFile)
         self.load_keyboard_layout(keyboardlayoutfile)
@@ -18,25 +18,26 @@ class KeyboardSpell(Spell):
            #self.weightObjFun = weightObjFun 
 
     @classmethod
-    def from_file(cls, filename, keyboardlayoutfile=None, weightObjFun=None):
-        mySpell = super().from_file(filename)
-        mySpell.load_keyboard_layout(keyboardlayoutfile)
-        mySpell.set_weightObjFun(weightObjFun)
-        return mySpell
+    def from_file(cls, spelldic=None, corpusfile=None, keyboardlayoutfile=None, weightObjFun=None):
+        return cls(spelldic, corpusfile, keyboardlayoutfile, weightObjFun)
+        #mySpell = super().from_file(filename)
+        #mySpell.load_keyboard_layout(keyboardlayoutfile)
+        #mySpell.set_weightObjFun(weightObjFun)
+        #return mySpell
 
-    @classmethod
-    def from_dictionary(cls, spelldic, keyboardlayoutfile=None, weightObjFun=None):
-        mySpell = super().from_dictionary(spelldic)
-        mySpell.load_keyboard_layout(keyboardlayoutfile)
-        mySpell.set_weightObjFun(weightObjFun)
-        return mySpell
+#    @classmethod
+#    def from_dictionary(cls, spelldic, keyboardlayoutfile=None, weightObjFun=None):
+#        mySpell = super().from_dictionary(spelldic)
+#        mySpell.load_keyboard_layout(keyboardlayoutfile)
+#        mySpell.set_weightObjFun(weightObjFun)
+#        return mySpell
 
-    @classmethod
-    def from_text_corpus(cls, textfile=None, keyboardlayoutfile=None, weightObjFun=None):
-        mySpell = super().from_text_corpus(textfile)
-        mySpell.load_keyboard_layout(keyboardlayoutfile)
-        mySpell.set_weightObjFun(weightObjFun)
-        return mySpell
+#    @classmethod
+#    def from_text_corpus(cls, textfile=None, keyboardlayoutfile=None, weightObjFun=None):
+#        mySpell = super().from_text_corpus(textfile)
+#        mySpell.load_keyboard_layout(keyboardlayoutfile)
+#        mySpell.set_weightObjFun(weightObjFun)
+#        return mySpell
 
     def set_weightObjFun(self, weight):
         if weight is None:
