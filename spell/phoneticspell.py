@@ -165,6 +165,10 @@ class PhoneticSpell(Spell):
            return self.parseUndesirableSymbols(stdout)
 
     def find_sub_list(self, sl, l):
+        """
+        find a sublist in a give list
+        returns a list ot tupples with start and end index of the sublist found in the given list
+        """
         results=[]
         sll=len(sl)
         for ind in (i for i,e in enumerate(l) if e==sl[0]):
@@ -175,14 +179,16 @@ class PhoneticSpell(Spell):
     def convertPhoneticWord2PhoneticSequence(self, word, letters=None):
         """ 
         split word in a sequence of phones 
-        tʃ, dʒ (ipa) and tS, dZ (kirshenbaum) are considered single phones
+        in english, tʃ, dʒ (ipa) and tS, dZ (kirshenbaum) are considered single phones
         """
+        # the spell checker list of phones will have them listed, so our convertion needs to mind
+        # those symbols with length greater than 1
         if letters is None:
             letters = self.listOfPhones
         dlList = [l for l in letters if len(l) > 1]
         sequence = [c for c in word]
         for dl in dlList:
-            sl = self.find_sub_list(list(dl), sequence)
+            sl = self.find_sub_list(list(dl), sequence) # find phonemes which are sequence-clusters (the output is a list of tupples with stand and end indexes)
             for k in range(len(sl)):
                 s = sl[k]
                 sequence[s[0]] = dl

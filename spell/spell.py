@@ -65,7 +65,7 @@ class Spell:
         self.language = 'en_US'
 
 #    @classmethod
-    def words(cls, text): return re.findall(r"\b[a-zA-Z]+['-]?[a-zA-Z]*\b", text.lower())
+    def words(cls, text): return re.findall(r"\b\w+['-]?\w*\b", text.lower())
 
     @classmethod
     def from_file(cls, spelldic=None, corpusfile=None):

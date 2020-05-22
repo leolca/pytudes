@@ -8,6 +8,12 @@ from functools import wraps
 import logging
 import logging.config
 
+# make matplotlib silent
+logging.basicConfig()
+#logger = logging.getLogger(__name__)
+logger = logging.getLogger('matplotlib')
+logger.setLevel(logging.DEBUG)
+
 # create logger
 log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_spellclasses.conf')
 logging.config.fileConfig(log_file_path)
@@ -51,10 +57,12 @@ class TestSpell(unittest.TestCase):
                  'wikipedia': 'https://www.dcs.bbk.ac.uk/~ROGER/wikipedia.dat'
                 }
  
-    N = 10              # control how many tests will be performed (if None, tests everything)
+    N = 100             # control how many tests will be performed (if None, tests everything)
     testDataSet = []
     testWeights = (0.7, 0.3)
-    corpusfilename = projpath + "/data/small.txt"
+    test_count = [0, 0] # count the number of tests (test_count[0]) and errors (test_count[1])
+    Ncandidates = 10    # number of spell suggestion candidates
+    corpusfilename = projpath + "/data/big.txt"
     dictionaryfile = projpath + "/data/englishdict.json"
     small_test_set =    (  ('speling', 'spelling'),   	# insert
                            ('korrectud','corrected'),      # replace 2
@@ -71,12 +79,12 @@ class TestSpell(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestSpell, self).__init__(*args, **kwargs)
-        self.test_count = [0, 0] # count the number of tests (test_count[0]) and errors (test_count[1])
 
     def setUp(self):
         """
         set up an array to collect assert failures 
         """
+        print("+++ In method {} +++".format(self._testMethodName))
         self.verificationErrors = []
 
     def tearDown(self):
@@ -85,7 +93,13 @@ class TestSpell(unittest.TestCase):
         """
         for e in self.verificationErrors:
             logger.info(e)
-        msg = "{speller} has not corrected {nerrors} from {total} spelling errors".format(speller=self.__class__.__name__, nerrors=str(self.test_count[1]), total=str(self.test_count[0]))
+        msg = "test: {testmethod} >>> {speller} has corrected {nerrors} from {total} spelling errors ({rate:.1%} correction rate)".format(
+                testmethod=self._testMethodName, 
+                speller=self.__class__.__name__, 
+                nerrors=self.test_count[0]-self.test_count[1], 
+                total=self.test_count[0],
+                rate=(self.test_count[0]-self.test_count[1])/self.test_count[0]
+                )
         logger.info(msg)
         print(msg)
 
@@ -147,9 +161,10 @@ class TestSpell(unittest.TestCase):
         word: misspelled1 misspelled2 
         """
         if len(self.testDataSet) == 0:
-           logger.info("downloading test data set ...")
+           logger.info("loading test data set ...")
            for key in self.testdata:
                if not os.path.exists(projpath + "/data/" + key + ".dat"): 
+                   logger.info("downloading {}".format(key))
                    os.system("wget -q " + self.testdata[key]  + " -O "+ projpath + "/data/"+ key + ".dat")
                os.system("""cat """ + projpath + """/data/""" + key  + """.dat | tr '\n' ' ' | tr '$' '\n' | awk '{$1=$1":"}1' | sed '/^:$/d' > """ + projpath + """/data/spell-testset-""" + key + """.txt""")
                with open(projpath + "/data/spell-testset-" + key + ".txt") as f:
@@ -157,7 +172,7 @@ class TestSpell(unittest.TestCase):
                    if self.N is not None:
                       import random
                       tmp = random.sample(tmp, self.N)
-                   TestSpell.testDataSet.extend( tmp )
+                   TestSpell.testDataSet.extend( set(tmp) - set(TestSpell.testDataSet) )
            logger.info("download completed!")
 
     @my_logger
@@ -178,6 +193,23 @@ class TestSpell(unittest.TestCase):
                      self.verificationErrors.append(str(e))
                      self.test_count[1]+=1
 
+    @my_logger
+    @my_timer
+    def test_suggestions(self):
+        """
+        test if the list of suggestions has the correct word
+        """
+        self.download_testdata()
+        myspell = Spell.from_file(spelldic=None, corpusfile=self.corpusfilename)
+        for right, wrong in self.testDataSet:
+            with self.subTest(right=right):
+                 self.test_count[0]+=1
+                 try: self.assertIn(right, myspell.correction(word=wrong, numcandidates=self.Ncandidates), "the correct spelling is {correct} (not listed as a sugestion)".format( correct=right ))
+                 except AssertionError as e:
+                     self.verificationErrors.append(str(e))
+                     self.test_count[1]+=1
+
+
 class TestKeyboardSpell(TestSpell):
     #keyboardlayoutfile = 'qwertyKeymap.json'     # use QWERTY as default keymap
 
@@ -192,7 +224,6 @@ class TestKeyboardSpell(TestSpell):
         return myspell
 
     def loadSpellFromDictionary(self, filename=None, keyboardlayoutfile=None, weightObjFun=None):
-        print("--- keyboard loadSpellFromDictionary ---")
         if filename is None:
             filename = projpath + "/data/englishdict.json"
         if keyboardlayoutfile is None:
