@@ -3,6 +3,7 @@ import os
 import re
 import json
 from collections import Counter
+from collections import OrderedDict
 from math import log10
 
 def exists(path):
@@ -47,7 +48,7 @@ def nlargest(d, n=None, thekey=None):
 
 class Spell:
     """Base spellchecker class"""
-    def __init__(self, spelldic=None, corpusfile=None):
+    def __init__(self, spelldic=None, corpusfile=None, suffixfile=None):
         """Initialize the spellchecker from as an empty Counter or load data from an existing Counter or from file, using load_WORDS method."""
         self.corpusfile = corpusfile
         if type( spelldic ) is Counter:
@@ -62,10 +63,24 @@ class Spell:
         self.N = self.get_corpus_length()
         self.M = self.get_max_frequency()
         self.m = self.get_min_frequency()
-        self.language = 'en_US'
+        if suffixfile:
+            self.suffixes = loadSuffixes(suffixfile)
+        else:
+            self.suffixes = None
+        try:
+            import locale
+            from icu import LocaleData
+            self.language, self.encoding = locale.getdefaultlocale()
+            data = LocaleData(self.language)
+            self.alphabet = data.getExemplarSet()
+        except ImportError:
+            self.language = 'en_US'
+            self.encoding = 'UTF-8'
+            self.alphabet = 'abcdefghijklmnopqrstuvwxyz'
 
 #    @classmethod
-    def words(cls, text): return re.findall(r"\b\w+['-]?\w*\b", text.lower())
+    def words(cls, text): 
+        return re.findall(r"\w+(?:['-]\w+)*", text.lower())
 
     @classmethod
     def from_file(cls, spelldic=None, corpusfile=None):
@@ -144,10 +159,11 @@ class Spell:
         if acounter is None:
            acounter = self.WORDS
         if n is None:
-           n = [1, 1]
-        if not isinstance(n, list):
-           n = [1, n]
-        return [w for w in acounter if acounter[w] < n[1]+1 and acounter[w] > n[0]-1]
+           n = (1, 1)
+        if isinstance(n,int):
+           n = (1, n)
+        if isinstance(n, (tuple, list)) and len(n)==2:
+           return [w for w in acounter if acounter[w] < n[1]+1 and acounter[w] > n[0]-1]
 
     def removefromdic(self, klist):
         """
@@ -173,6 +189,40 @@ class Spell:
         else:
            oddList = nlegomenonList
         return oddList
+
+    def loadSuffixes(self, sfxfile):
+        if exists(sfxfile):
+            try:
+                sfxs = {}
+                with open(sfxfile) as f:
+                    for line in f:
+                        li = line.strip()
+                        li = re.sub(r' *#.*$','',li)
+                        if li:
+                            lf = li.split('\t')
+                            sfxs[lf[0]] = lf[1]
+                            for k in range(2,len(lf)):
+                                sfxs[lf[0]] += ' ' + lf[k]
+                suffixes = OrderedDict(sorted(sfxs.items(), key=lambda t: len(t[0]), reverse = True)) # suffixe replacement should be done by longest-match-first
+                return suffixes
+        else:
+            return None
+
+    def stripSuffix(self, word):
+        if self.suffixes:
+            wlist = []
+            for regex in self.suffixes:
+                m = re.search(regex, word)
+                if m:
+                    replace = self.suffixes[regex].split()
+                    if not replace:
+                        wlist = word[0:m.start()]
+                    else:
+                        for r in replace:
+                            wlist.append(word[0:m.start()] + r)
+                break
+            return wlist
+        return None
 
     def P(self, word):
         """Return the MLE of a word's probability."""
@@ -206,16 +256,18 @@ class Spell:
 
     def known(self, words):
         "The subset of `words` that appear in the dictionary of WORDS."
-        return set(w for w in words if w in self.WORDS)
+        if self.suffixes:
+            return set(w for w in words if self.stripSuffix(w) in self.WORDS)
+        else:
+            return set(w for w in words if w in self.WORDS)
 
     def edits1(self, word):
         "All edits that are one edit away from `word`."
-        letters    = 'abcdefghijklmnopqrstuvwxyz'
         splits     = [(word[:i], word[i:])    for i in range(len(word) + 1)]
         deletes    = [L + R[1:]               for L, R in splits if R]
         transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R)>1]
-        replaces   = [L + c + R[1:]           for L, R in splits if R for c in letters]
-        inserts    = [L + c + R               for L, R in splits for c in letters]
+        replaces   = [L + c + R[1:]           for L, R in splits if R for c in self.alphabet]
+        inserts    = [L + c + R               for L, R in splits for c in self.alphabet]
         return set(deletes + transposes + replaces + inserts)
 
     def edits2(self, word):

@@ -2,3 +2,4 @@
 from .spell import Spell
 from .keyboardspell import KeyboardSpell
 from .phoneticspell import PhoneticSpell
+from .typospell import TypoSpell
