@@ -3,10 +3,11 @@ from spell import *
 
 
 class TypoSpell(Spell):
-    def __init__(self, spelldic=None, corpusfile=None, weightObjFun=None):
+    def __init__(self, spelldic=None, corpusfile=None, ngrams=[2,3] weightObjFun=None):
         # call the parent constructor
         Spell.__init__(self, spelldic, corpusfile)
         self.compute_typo_statistics()
+        self.ngrams = ngrams
         self.set_weightObjFun(weightObjFun)
 
     @classmethod
@@ -34,25 +35,27 @@ class TypoSpell(Spell):
 
     def compute_typo_statistics(self):
         from collections import Counter
-        self.BIGRAMS = Counter()
-        self.TRIGRAMS = Counter()
+        self.NGRAMS = {}
+        for n in self.ngrams:
+            self.NGRAMS[n] = Counter()
         for w in self.WORDS:
-            bigrams = self.compute_word_ngrams(w, 2)
-            trigrams = self.compute_word_ngrams(w, 3)
-            for bigram in bigrams:
-                self.BIGRAMS[bigram] += self.WORDS[w]
-            for trigram in trigrams:
-                self.TRIGRAMS[trigram] += self.WORDS[w]
+            for n in self.ngrams:
+                wngrams = self.compute_word_ngrams(w, n)
+                for g in wngrams:
+                    self.NGRAMS[n][g] += self.WORDS[w]
         #remove hapax legomenon / and-or use add one smoothing
 
     def trigram_peculiarity_index(self, trigram):
-        import math
-        bigram1 = trigram[0:2]
-        bigram2 = trigram[1:3]
-        if bigram1 in self.BIGRAMS and bigram2 in self.BIGRAMS and trigram in self.TRIGRAMS and self.BIGRAMS[bigram1] > 1 and self.BIGRAMS[bigram2] > 1 and self.TRIGRAMS[trigram] > 1:
-            return (math.log10( self.BIGRAMS[bigram1] - 1 ) + math.log10( self.BIGRAMS[bigram2] - 1 ) )/2 - math.log10( self.TRIGRAMS[trigram] - 1 )
+        if all(n in self.NGRAMS for n in (2, 3)):
+            import math
+            bigram1 = trigram[0:2]
+            bigram2 = trigram[1:3]
+            if bigram1 in self.NGRAMS[2] and bigram2 in self.NGRAMS[2] and trigram in self.NGRAMS[3] and self.NGRAMS[2][bigram1] > 1 and self.NGRAMS[2][bigram2] > 1 and self.NGRAMS[3][trigram] > 1:
+                return (math.log10( self.NGRAMS[2][bigram1] - 1 ) + math.log10( self.NGRAMS[2][bigram2] - 1 ) )/2 - math.log10( self.NGRAMS[3][trigram] - 1 )
+            else:
+                return math.inf
         else:
-            return math.inf
+            return None
 
     def word_peculiarity_index(self, word):
         trigrams = self.compute_word_ngrams(word, 3)
