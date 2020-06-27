@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-from spell.spell import *
+from .utils import exists, nlargest, removeMultiple
+from .spell import Spell
+from math import log10
 
 __pronunciationalphabet__ = ('ipa', 'kirshenbaum')
 
 class PhoneticSpell(Spell):
-    def __init__(self, spelldic=None, corpusfile=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None, weightObjFun=None):
+    def __init__(self, spelldic=None, corpusfile=None, suffixfile=None, language=None, encoding=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None, weightObjFun=None):
         # call the parent constructor
-        Spell.__init__(self, spelldic, corpusfile)
+        Spell.__init__(self, spelldic, corpusfile, suffixfile, language, encoding)
         if pronalphabet in __pronunciationalphabet__:
             self.pronalphabet = pronalphabet
         else:
@@ -74,8 +76,8 @@ class PhoneticSpell(Spell):
 #        return cls(parent)
 
     @classmethod
-    def from_file(cls, spelldic=None, corpusfile=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None):
-        return cls(spelldic, corpusfile, pronalphabet, pronounciationdict, distinctivefeatures)
+    def from_file(cls, spelldic=None, corpusfile=None, suffixfile=None, language=None, encoding=None, pronalphabet=None, pronounciationdict=None, distinctivefeatures=None):
+        return cls(spelldic, corpusfile, suffixfile, language, encoding, pronalphabet, pronounciationdict, distinctivefeatures)
         #mySpell = super().from_file(spelldic, corpusfile)
         #mySpell.loaddistinctivefeatures(distinctivefeatures)
         #mySpell.loadwordpronounciationdict(pronounciationdict)
@@ -155,7 +157,7 @@ class PhoneticSpell(Spell):
               txtalphabet = '-x'
            elif alphabet.lower() == 'ipa':
               txtalphabet = '--ipa'
-           import subprocess
+           import subprocess, re
            out = subprocess.Popen(['espeak', '-q', txtalphabet, word], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
            stdout,stderr = out.communicate()
            stdout = str(stdout,'utf-8')

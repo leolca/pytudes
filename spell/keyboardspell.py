@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from spell.spell import *
+from .utils import exists, nlargest, removeMultiple
+from .spell import Spell
 
 class KeyboardSpell(Spell):
-    def __init__(self, spelldic=None, corpusfile=None, keyboardlayoutfile=None, weightObjFun=None):
+    def __init__(self, spelldic=None, corpusfile=None, suffixfile=None, language=None, encoding=None, keyboardlayoutfile=None, weightObjFun=None):
         # call the parent constructor
-        Spell.__init__(self, spelldic, corpusfile)
+        Spell.__init__(self, spelldic, corpusfile, suffixfile, language, encoding)
         #super(self.__class__, self).__init__(spelldic)
         # or Spell.__init__(self, dicFile)
         self.load_keyboard_layout(keyboardlayoutfile)
@@ -18,8 +19,8 @@ class KeyboardSpell(Spell):
            #self.weightObjFun = weightObjFun 
 
     @classmethod
-    def from_file(cls, spelldic=None, corpusfile=None, keyboardlayoutfile=None, weightObjFun=None):
-        return cls(spelldic, corpusfile, keyboardlayoutfile, weightObjFun)
+    def from_file(cls, spelldic=None, corpusfile=None, suffixfile=None, language=None, encoding=None, keyboardlayoutfile=None, weightObjFun=None):
+        return cls(spelldic, corpusfile, suffixfile, language, encoding, keyboardlayoutfile, weightObjFun)
         #mySpell = super().from_file(filename)
         #mySpell.load_keyboard_layout(keyboardlayoutfile)
         #mySpell.set_weightObjFun(weightObjFun)
@@ -53,6 +54,7 @@ class KeyboardSpell(Spell):
            Args:
               keyboardlayoutfile: A keyboard layout file in JSON format or using python syntax.
         """
+        import json
         if keyboardlayoutfile is not None:
            if keyboardlayoutfile.endswith('.json'):
               with open(keyboardlayoutfile, 'r') as f:
