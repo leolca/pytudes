@@ -72,7 +72,8 @@ class TestSpell(unittest.TestCase):
     sfxfile = None #projpath + "/data/english.sfx" # if None, do not use suffix strip
     kblayoutfile = projpath + "/data/qwertyKeymap.json" # use QWERTY as default keymap
     soundexfile = projpath + "/data/english_soundex.json"
-    soundexlen = 4
+    soundexlen = 5
+    ngrams = [2,3]
     language = "en_US"
     encoding = "UTF-8"
     small_test_set =    (  ('speling', 'spelling'),   	# insert
@@ -288,7 +289,36 @@ class TestSpell(unittest.TestCase):
         """
         self.download_testdata()
         logger.info("loading spellchecker ...")
-        myspell = spell.Spell.from_file(spelldic=None, corpusfile=self.corpusfilename, suffixfile=self.sfxfile)
+        if isinstance(self, TestKeyboardSpell):
+            myspell = spell.KeyboardSpell.from_file(
+                    spelldic=self.dictionaryfile, 
+                    corpusfile=self.corpusfilename, 
+                    suffixfile=self.sfxfile, 
+                    language=self.language, 
+                    encoding=self.encoding, 
+                    keyboardlayoutfile=self.kblayoutfile, 
+                    weightObjFun=self.testWeights) 
+        elif isinstance(self, TestTypoSpell):
+            myspell = spell.TypoSpell.from_file(
+                    spelldic=self.dictionaryfile,
+                    corpusfile=self.corpusfilename,
+                    suffixfile=self.sfxfile,
+                    language=self.language,
+                    encoding=self.encoding,
+                    ngrams=self.ngrams,
+                    weightObjFun=self.testWeights)
+        elif isinstance(self, TestSoundexSpell):
+            myspell = spell.SoundexSpell.from_file(
+                    spelldic=self.dictionaryfile, 
+                    corpusfile=self.corpusfilename, 
+                    suffixfile=self.sfxfile, 
+                    language=self.language, 
+                    encoding=self.encoding, 
+                    soundexfile=self.soundexfile, 
+                    soundexlen=self.soundexlen, 
+                    weightObjFun=self.testWeights)
+        else:
+            myspell = spell.Spell.from_file(spelldic=None, corpusfile=self.corpusfilename, suffixfile=self.sfxfile)
         if self.Nodd:
             myspell.removefromdic( myspell.createoddwordslist(n=self.Nodd) )
         logger.info("spellckecker ready!")

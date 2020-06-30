@@ -20,14 +20,20 @@ class SoundexSpell(Spell):
         self.set_weightObjFun(weightObjFun)
 
     @classmethod
-    def from_file(cls, spelldic=None, corpusfile=None, suffixfile=None, language=None, encoding=None, soundexfile=None, weightObjFun=None):
-        return cls(spelldic, corpusfile, suffixfile, language, encoding, soundexfile, weightObjFun)
+    def from_file(cls, spelldic=None, corpusfile=None, suffixfile=None, language=None, encoding=None, soundexfile=None, soundexlen=None, weightObjFun=None):
+        return cls(spelldic, corpusfile, suffixfile, language, encoding, soundexfile, soundexlen=None, weightObjFun=None)
 
     def load_soundex_dictionary(self, filename):
         import json
         if filename is not None and filename.endswith('.json') and exists(filename):
-           with open(filename) as f:
-               self.SOUNDEX_WORDS = json.load(f)
+            with open(filename) as f:
+                self.SOUNDEX_WORDS = json.load(f)
+            a_key = next(iter(self.SOUNDEX_WORDS))
+            the_sndx_length = len(self.SOUNDEX_WORDS[a_key])
+            if the_sndx_length != self.soundexlen:
+                import warnings
+                warnings.warn("Incongruent Soundex length parameter was given. Updating it to {} (length found in the given dictionary).".format(the_sndx_length))
+                self.soundexlen = the_sndx_length
         else:
             for w in self.WORDS:
                 self.SOUNDEX_WORDS[w] = self.soundex(w, self.soundexlen)

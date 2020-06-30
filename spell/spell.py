@@ -72,10 +72,15 @@ class Spell:
         from icu import LocaleData
         if language is None and encoding is None:
             self.language, self.encoding = locale.getdefaultlocale()
-        if language is None:
-            self.language, _ = locale.getdefaultlocale()
-        if encoding is None:
-            _, self.encoding = locale.getdefaultlocale()
+        else:
+            if language is None:
+                self.language, _ = locale.getdefaultlocale()
+            else:
+                self.language = language
+            if encoding is None:
+                _, self.encoding = locale.getdefaultlocale()
+            else:
+                self.encoding = encoding
         data = LocaleData(self.language)
         self.alphabet = data.getExemplarSet()
         #    self.language = 'en_US'
