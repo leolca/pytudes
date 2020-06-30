@@ -56,8 +56,8 @@ class TestSpell(unittest.TestCase):
                  'norvig2': 'https://norvig.com/spell-testset2.txt',
                  'holbrook': 'https://www.dcs.bbk.ac.uk/~ROGER/holbrook-missp.dat'
                 }
-    #testdata = ['norvig1', 'norvig2'] #, 'aspell', 'wikipedia'] # select which dataset to use in tests
-    testdata = ['wikipedia']
+    testdata = ['norvig1', 'norvig2'] #, 'aspell', 'wikipedia'] # select which dataset to use in tests
+    #testdata = ['wikipedia']
     N = None             # control how many tests will be performed (if None, tests everything)
     testDataSet = []
     testWeights = (0.5, 0.5) # freq, feature
@@ -71,6 +71,8 @@ class TestSpell(unittest.TestCase):
     dictionaryfile = projpath + "/data/englishdict.json"
     sfxfile = None #projpath + "/data/english.sfx" # if None, do not use suffix strip
     kblayoutfile = projpath + "/data/qwertyKeymap.json" # use QWERTY as default keymap
+    soundexfile = projpath + "/data/english_soundex.json"
+    soundexlen = 4
     language = "en_US"
     encoding = "UTF-8"
     small_test_set =    (  ('speling', 'spelling'),   	# insert
@@ -387,6 +389,38 @@ class TestPhoneticSpell(TestSpell):
             distinctivefeatures=projpath+"/data/distinctivefeatures_ipa_mhulden.csv"
         myspell = spell.PhoneticSpell.from_file(spelldic=filename, corpusfile=None, suffixfile=suffixfile, pronalphabet=pronalphabet, pronounciationdict=pronounciationdict, distinctivefeatures=distinctivefeatures)
         return myspell
+
+
+class TestSoundexSpell(TestSpell):
+
+    def loadSpellFromCorpus(self, filename=None, suffixfile=None, soundexfile=None, soundexlen=None, weightObjFun=None):
+        if filename is None:
+            filename = self.corpusfilename
+        if suffixfile is None: 
+            suffixfile = self.sfxfile
+        if soundexfile is None:
+            soundexfile = self.soundexfile
+        if soundexlen is None:
+            soundexlen = self.soundexlen
+        if weightObjFun is None:
+            weightObjFun = self.testWeights
+        myspell = spell.SoundexSpell.from_file(spelldic=None, corpusfile=filename, suffixfile=suffixfile, soundexfile=soundexfile, soundexlen=soundexlen, weightObjFun=weightObjFun)
+        return myspell
+
+    def loadSpellFromDictionary(self, filename=None, suffixfile=None, soundexfile=None, soundexlen=None, weightObjFun=None):
+        if filename is None:
+            filename = projpath + "/data/englishdict.json"
+        if suffixfile is None: 
+           suffixfile = self.sfxfile
+        if soundexfile is None:
+            soundexfile = self.soundexfile 
+        if soundexlen is None:
+            soundexlen = self.soundexlen
+        if weightObjFun is None:
+            weightObjFun = self.testWeights
+        myspell = spell.SoundexSpell.from_file(spelldic=filename, corpusfile=None, suffixfile=suffixfile, soundexfile=soundexfile, soundexlen=soundexlen, weightObjFun=weightObjFun)
+        return myspell
+
 
 
 def main():
