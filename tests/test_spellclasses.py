@@ -71,8 +71,8 @@ class TestSpell(unittest.TestCase):
     dictionaryfile = projpath + "/data/englishdict.json"
     sfxfile = None #projpath + "/data/english.sfx" # if None, do not use suffix strip
     kblayoutfile = projpath + "/data/qwertyKeymap.json" # use QWERTY as default keymap
-    soundexfile = projpath + "/data/english_soundex.json"
-    soundexlen = 5
+    soundexfile = None #projpath + "/data/english_soundex.json"
+    soundexlen = 4
     ngrams = [2,3]
     language = "en_US"
     encoding = "UTF-8"
