@@ -57,7 +57,7 @@ class TestSpell(unittest.TestCase):
                  'holbrook': 'https://www.dcs.bbk.ac.uk/~ROGER/holbrook-missp.dat'
                 }
     #testdata = ['norvig1', 'norvig2'] #, 'aspell', 'wikipedia'] # select which dataset to use in tests
-    testdata = ['birkbeck']
+    testdata = ['wikipedia']
     N = None             # control how many tests will be performed (if None, tests everything)
     testDataSet = []
     testWeights = (0.5, 0.5) # freq, feature
