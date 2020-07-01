@@ -29,17 +29,20 @@ class SoundexSpell(Spell):
             with open(filename) as f:
                 self.SOUNDEX_WORDS = json.load(f)
             a_key = next(iter(self.SOUNDEX_WORDS))
-            the_sndx_length = len(self.SOUNDEX_WORDS[a_key])
-            if the_sndx_length != self.soundexlen:
+            if len(a_key) != self.soundexlen:
                 import warnings
                 warnings.warn("Incongruent Soundex length parameter was given. Updating it to {} (length found in the given dictionary).".format(the_sndx_length))
-                self.soundexlen = the_sndx_length
+                self.soundexlen = len(a_key)
         else:
             for w in self.WORDS:
-                self.SOUNDEX_WORDS[w] = self.soundex(w, self.soundexlen)
+                sndx = self.soundex(w, self.soundexlen)
+                if sndx in self.SOUNDEX_WORDS:
+                    self.SOUNDEX_WORDS[sndx].append(w)
+                else:
+                    self.SOUNDEX_WORDS[sndx] = [w]
             if filename is not None and filename.endswith('.json') and not exists(filename):
-               with open(filename, 'w') as f:
-                   json.dump(self.SOUNDEX_WORDS, f, indent=2)
+                with open(filename, 'w') as f:
+                    json.dump(self.SOUNDEX_WORDS, f, indent=2)
 
     def soundex(self, s, mlen=None):
         # https://west-penwith.org.uk/misc/soundex.htm
@@ -69,8 +72,11 @@ class SoundexSpell(Spell):
     def candidates(self, word):
         """Generate possible spelling corrections for word."""
         sndx = self.soundex(word)
-        clist = [key for (key, value) in self.SOUNDEX_WORDS.items() if value == sndx]
-        return self.known(clist)
+        #clist = [key for (key, value) in self.SOUNDEX_WORDS.items() if value == sndx]
+        if sndx in self.SOUNDEX_WORDS:
+            return self.known(self.SOUNDEX_WORDS[sndx])
+        else:
+            return set()
 
     def set_weightObjFun(self, weight):
         if weight is None:
